@@ -26,6 +26,12 @@ const SESSION_SUFFIX = '.vaporview.json';
 const WAVEFORM_SUFFIXES = ['.vcd', '.fst', '.ghw'];
 const EDITOR_ID = 'vaporview.waveformViewer';
 const SETTING_PREFIX = 'vaporview.';
+// Messages of vaporview that have no use in Orca. They go to the log only. The review of all
+// vaporview messages is in docs/feature-parity.md.
+const HIDDEN_MESSAGES: RegExp[] = [
+  // vaporview reads the colors of the VS Code color theme at its start. Orca has no such theme.
+  /^Error getting user theme/,
+];
 // vaporview asks "Yes" or "No" before it adds more than 48 signals at one time.
 const ADD_MANY_SIGNALS = /^You are about to add a large number of signals/;
 // The status bar items of the manifest, in the order in which vaporview makes its items.
@@ -139,6 +145,7 @@ export default async function activate(orca: any): Promise<void> {
   // Messages of vaporview show in the panel. Orca gives a plugin only a desktop notification.
   const notify = (level: string, message: string) => {
     log(`[${level}] ${message}`);
+    if (HIDDEN_MESSAGES.some((m) => m.test(message))) { return; }
     orca.panels.post('panel.message', { level, message });
   };
   // A question of vaporview is a message with buttons. Orca has no question dialog for a plugin,

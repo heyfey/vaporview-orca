@@ -129,6 +129,39 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | WCP server | Yes | Deferred | no | | |
 | API for other extensions | Yes | Deferred | no | | Orca plugins cannot call each other |
 
+## Messages of vaporview
+
+vaporview has 21 places that show a message (information, warning, error, or a question with
+buttons). In VS Code a message is a notification. In the plugin a message shows in the panel.
+
+"Decision" is `done` where the behavior is decided and built. `open` needs a decision, see D5.
+
+| # | Message | Source | When | Can occur now | Plugin | Decision |
+|---|---|---|---|---|---|---|
+| 1 | "Error getting user theme. If you are seeing this while using VS Code SSH…" | `viewer_provider.ts:167` | At the start, when vaporview cannot read the VS Code color theme | Yes, at each start | Hidden. It goes to the log only. | done |
+| 2 | "You are about to add a large number of signals…" (Yes, No) | `viewer_provider.ts:1267` | More than 48 signals in one action | Yes | No message. The plugin adds the signals. | done |
+| 3 | "Restore state from file: `<name>.json`?" (Yes, No, Settings) | `viewer_provider.ts:720` | A `<name>.json` is beside the waveform file and the page has no saved state | Yes | The text shows, and the person cannot answer | open: hide |
+| 4 | "WaveDrom JSON copied to clipboard." | `wavedrom.ts:155` | After "Copy Selection as WaveDrom" | Yes | Shows | open: keep |
+| 5 | "The number of transitions exceeds the maximum limit of N" | `wavedrom.ts:149` | The WaveDrom copy is cut at the limit | Yes | Shows | open: keep |
+| 6 | "Unknown number format: X" | `value_format.ts:701` | A value format id that vaporview does not know, for example from an old session file | Yes, rare | Shows | open: keep |
+| 7 | "FSDB support is currently available on Linux only." | `fsdb_handler.ts:137` | The person types the path of an `.fsdb` file in the file browser | Yes | Shows | open: replace with one plugin message "FSDB is not available yet" |
+| 8 | "Failed to load FSDB reader, is vaporview.fsdbReaderLibsPath properly set?" | `fsdb_handler.ts:216` | Same, on Linux | Yes | Shows | open: same as 7 |
+| 9 | "Remote connection lost… Please reconnect." (Reconnect, Close Tab) | `viewer_provider.ts:515` | Remote viewer | No, deferred | | |
+| 10 | "`<url>` uses unencrypted HTTP…" (Connect Anyway) | `viewer_provider.ts:544` | Remote viewer | No, deferred | | |
+| 11 | "Failed to open remote viewer: …" | `viewer_provider.ts:575` | Remote viewer | No, deferred | | |
+| 12 | "No viewer is active. Please select the viewer you wish to save session." | `viewer_provider.ts:587` | "Save Vaporview Session" with no active viewer | No, the command is hidden | | |
+| 13 | "No viewer is active. Please select the viewer you wish to load session into." | `viewer_provider.ts:644` | "Load Vaporview Session" with no active viewer | No, the command is hidden | | |
+| 14 | "The session file may not match the active viewer" | `viewer_provider.ts:680` | A loaded session file names a different waveform file | No, the load is not reachable | | |
+| 15 | "Document not found: `<uri>`" | `viewer_provider.ts:937` | A command names a waveform that is not open (API for other extensions) | No | | |
+| 16 | "Signal not found: `<id>`" | `viewer_provider.ts:960` | A command names an unknown signal (API for other extensions) | No | | |
+| 17 | "Signal not found: `<id>`" | `viewer_provider.ts:1002` | Add or remove a variable through the API | No | | |
+| 18 | "Signal not found: `<name>`" | `viewer_provider.ts:1151` | "Add Variable by Name", terminal links | No, blocked and deferred | | |
+| 19 | "Scope not found: `<name>`" | `viewer_provider.ts:1226` | "Add scope by name" | No, blocked | | |
+| 20 | "Invalid bit range string: …" | `viewer_provider.ts:1352` | After the input box of "New Signal From Bit Range" | No, blocked | | |
+| 21 | "Invalid custom length. Please enter a positive integer." | `commands.ts:185` | After the input box of "Custom Length" | No, blocked | | |
+
+Messages 9 to 21 cannot occur now. If one occurs later, it shows in the panel.
+
 ## Open decisions
 
 | # | Topic | Options | Recommendation |
@@ -137,6 +170,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | D2 | Save and load a session file | (a) Leave it out until Orca has a file dialog (PR-2). (b) "Save" with the Orca save dialog (`files.saveAs`), "Load" with the file browser of the panel. | (a). The automatic session file covers the main use. |
 | D3 | Signal colors | (a) Keep the fixed colors. (b) Add 4 plugin settings for the first four colors (vaporview already has settings for colors 5 to 8). | (a) for now |
 | D4 | Commands in the Orca command palette | (a) None. (b) A small set that needs no argument: zoom to fit, reload file, new group. | (b), after the menus are tested by hand |
+| D5 | Messages of vaporview that can occur (rows 3 to 8 of "Messages of vaporview") | For each: show it in the panel, or hide it | Hide 3. Keep 4, 5, and 6. Replace 7 and 8 with one plugin message. |
 
 ## Checks that need a person
 
