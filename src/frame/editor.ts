@@ -4,6 +4,7 @@
 import { decodeMessages, toJson } from '../common/codec';
 import { evaluateWhen } from '../common/when';
 import { showMenu, closeMenu, writeClipboard } from './menu';
+import { installMessages } from './message';
 
 declare const orca: any;
 
@@ -44,6 +45,7 @@ function snapshot(): { summary: object; image: string } {
       labels: text('.waveform-label'),
       values: text('.value-display-item'),
       canvases: canvases.map((c) => [c.id || c.className, c.width, c.height]),
+      messages: [...document.querySelectorAll('.vv-msg')].map((m) => [...m.children].map((n) => n.textContent ?? '')),
       menu: [...document.querySelectorAll('.vv-menu')].map((m) => [...m.children].map((n) => (n.className === 'vv-menu-sep' ? '---' : n.firstChild?.textContent ?? ''))),
       errors: pageErrors.slice(-10),
     },
@@ -111,6 +113,9 @@ function replayInput(events: any[]): void {
       const init = { bubbles: true, cancelable: true, key: ev.key, code: ev.code ?? '', ctrlKey: !!ev.ctrl, shiftKey: !!ev.shift, altKey: !!ev.alt, metaKey: !!ev.meta };
       (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', init));
       (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keyup', init));
+    } else if (ev.type === 'answer') {
+      const button = [...document.querySelectorAll('.vv-msg button')].find((n) => n.textContent === ev.text) as HTMLElement | undefined;
+      if (button) { button.click(); } else { pageErrors.push(`input: no message button "${ev.text}"`); }
     } else if (ev.type === 'menu') {
       // Selects an item of the open context menu by its text.
       const item = [...document.querySelectorAll('.vv-menu-item')].find((n) => n.firstChild?.textContent === ev.text) as HTMLElement | undefined;
@@ -278,6 +283,7 @@ async function main(): Promise<void> {
   });
 
   orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });
+  installMessages();
 
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');

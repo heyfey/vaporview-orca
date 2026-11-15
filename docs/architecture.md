@@ -83,6 +83,8 @@ Rules of the adapter:
 
 - A VS Code API with no Orca equivalent is a no-op that writes one log line (for example terminal
   links). An input box and a quick pick answer as if the person cancelled.
+- A VS Code message goes to the pages of the plugin. A message with buttons is a question: the
+  worker waits for the answer of the person ([message.ts](../src/frame/message.ts)).
 - Orca workarounds are in the hub, each in one named part: `FrameLink` (message transport),
   the session file, and the file browser.
 - The message format is in one file, [src/common/codec.ts](../src/common/codec.ts). It is the only

@@ -98,6 +98,24 @@ check(!bitMenu.some((m) => m.label === 'Format Values') && !bitMenu.some((m) => 
 const rulerMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'ruler', rulerLines: true } })).items;
 check(rulerMenu.some((m) => m.title === 'Hide Ruler Lines') && !rulerMenu.some((m) => m.title === 'Show Ruler Lines'), 'viewer menu of the ruler follows the state');
 
+// A question of vaporview: the worker posts it to the pages and waits for the answer.
+posts.length = 0;
+const poll2 = async () => JSON.parse((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).messages);
+const probe = poll2();                 // the live frame has a poll open
+const addAll = req('menu.run', { source: 'tree', id: top.items[0].id, command: 'vaporview.addAllInScopeRecursive' });
+await probe;                           // the worker asks if the frame is alive
+let next = poll2();                    // the frame polls again, so it is alive
+let question;
+for (let i = 0; i < 60 && !question; i++) { await sleep(50); question = posts.find((p) => p.event === 'ui.message' && p.payload.items.length)?.payload; }
+check(question?.items.join(',') === 'Yes,No', `"add all in scope" asks a question (${question?.message.slice(0, 50)}… [${question?.items}])`);
+if (question) {
+  posts.length = 0;
+  await req('ui.answer', { id: question.id, item: 'Yes' });
+  const got = await next;
+  await addAll;
+  check(posts.some((p) => p.event === 'ui.dismiss') && got.some((m) => m.command === 'add-variable' && m.signalList.length > 100), `the answer "Yes" adds the signals (${got.filter((m) => m.command === 'add-variable').map((m) => m.signalList.length)} signals)`);
+}
+
 await req('panel.close', { docKey: hello.docKey });
 state = await req('panel.state', { workspace: context });
 check(state.waveforms.length === 0, 'close removes the waveform');

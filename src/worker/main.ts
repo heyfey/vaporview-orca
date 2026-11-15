@@ -134,10 +134,28 @@ export default async function activate(orca: any): Promise<void> {
   const activeByWorkspace = new Map<string, string>();   // workspace key -> entry key
   let currentWorkspace: WorkspaceInfo | undefined;
 
+  // Messages. Orca gives a plugin only a desktop notification with no buttons, so the pages
+  // of the plugin show a message, with its buttons if it has some.
+  let messageId = 0;
+  const questions = new Map<number, (answer: string | undefined) => void>();
   const notify = (level: string, message: string) => {
     log(`[${level}] ${message}`);
-    orca.panels.post('panel.message', { level, message });
+    orca.panels.post('ui.message', { id: ++messageId, level, message, items: [] });
   };
+  const ask = (level: string, message: string, items: string[]): Promise<string | undefined> => {
+    log(`[${level}] ${message} [${items.join(' | ')}]`);
+    const id = ++messageId;
+    orca.panels.post('ui.message', { id, level, message, items });
+    return new Promise((resolve) => questions.set(id, resolve));
+  };
+  orca.panels.handle('ui.answer', (input: any) => {
+    const resolve = questions.get(input?.id);
+    questions.delete(input?.id);
+    // The other pages remove the same question.
+    orca.panels.post('ui.dismiss', { id: input?.id });
+    resolve?.(typeof input?.item === 'string' ? input.item : undefined);
+    return { ok: !!resolve };
+  });
 
   // Settings. VS Code reads a setting without a wait, so the worker keeps a copy.
   let settings: Record<string, unknown> = {};
@@ -165,6 +183,7 @@ export default async function activate(orca: any): Promise<void> {
     extensionPath: path.join(here, 'ext'),
     log,
     notify,
+    ask,
     executeHostCommand: (command: string) => { log(`[adapter] command not available in Orca: ${command}`); return undefined; },
     getSetting: (key: string) => (key.startsWith(SETTING_PREFIX) ? settings[key.slice(SETTING_PREFIX.length)] : undefined),
     setSetting: (key: string, value: unknown) => {

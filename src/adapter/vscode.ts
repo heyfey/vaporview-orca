@@ -25,6 +25,8 @@ export interface AdapterHost {
   extensionPath: string;
   log(message: string): void;
   notify(level: 'info' | 'warning' | 'error', message: string): void;
+  /** A message with buttons. The answer is the text of the selected button, or undefined. */
+  ask(level: 'info' | 'warning' | 'error', message: string, items: string[]): Promise<string | undefined>;
   /** `vscode.commands.executeCommand` for a command that the extension did not register. */
   executeHostCommand(command: string, args: unknown[]): unknown;
   /** A plugin setting, or undefined to use the default of the vaporview package.json. */
@@ -38,6 +40,7 @@ const noHost: AdapterHost = {
   extensionPath: '',
   log: (m) => console.log(m),
   notify: (level, m) => console.log(`[${level}] ${m}`),
+  ask: async () => undefined,
   executeHostCommand: () => undefined,
   getSetting: () => undefined,
   setSetting: () => undefined,
@@ -460,9 +463,19 @@ function outputChannel(name: string) {
   };
 }
 
-const message = (level: 'info' | 'warning' | 'error') => async (text: string, ..._items: unknown[]): Promise<undefined> => {
-  host.notify(level, text);
-  return undefined;
+// `showInformationMessage(text, ...items)` and `showInformationMessage(text, options, ...items)`.
+// An item is a text or an object with a `title`. The answer is the item that the person selected.
+const message = (level: 'info' | 'warning' | 'error') => async (text: string, ...rest: any[]): Promise<any> => {
+  const isOptions = (v: any) => v && typeof v === 'object' && !('title' in v);
+  const items = isOptions(rest[0]) ? rest.slice(1) : rest;
+  if (items.length === 0) {
+    host.notify(level, text);
+    return undefined;
+  }
+  const labels = items.map((i) => (typeof i === 'string' ? i : String(i.title)));
+  const answer = await host.ask(level, text, labels);
+  const index = answer === undefined ? -1 : labels.indexOf(answer);
+  return index < 0 ? undefined : items[index];
 };
 
 export const window = namespace('window', {

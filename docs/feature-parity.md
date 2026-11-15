@@ -116,6 +116,8 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Settings | 33 settings in VS Code | Same | yes | no | 26 settings in the Orca settings page of the plugin. The 7 others are for features that the plugin does not have. A change was not tested. |
 | Change a setting from the viewer | For example scrolling mode | Same | yes | no | |
 | Status bar: marker time, delta time, selected signal | 3 items | Same | yes | Orca | Orca status bar items |
+| Messages (information, warning, error) | VS Code notification | Tweaked | yes | Orca | A message bar in the panel and in the viewer page. Orca gives a plugin only a desktop notification. |
+| Questions with buttons, for example "add a large number of signals: Yes, No" | VS Code notification with buttons | Tweaked | yes | Orca (events) | The message bar has the buttons. The first answer from one page closes the question in the other page. Orca has no confirm API for a plugin. PR-7 (deferred) |
 
 ## Integration
 

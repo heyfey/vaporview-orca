@@ -179,6 +179,11 @@ this purpose, so the fit with the use model of the plugin is not confirmed.
   `ui.pick({ title, items }) → { status, item }`.
 - **General.** Rename, go to, add by name, select one of a list: each plugin with commands has these cases.
 - **Backward compatible.** New methods.
+- **Confirm is the smallest part.** A plugin can show only a desktop notification with no buttons
+  (`notifications.show({ title, body })`). Orca has a native question dialog for plugin actions
+  (`confirmPluginAction` in `src/main/plugins/consent/plugin-action-confirmation.ts`), but only Orca
+  itself can call it. A worker method `ui.confirm({ message, detail?, confirmLabel, cancelLabel? })`
+  can use that function directly. The plugin now draws its questions in its own pages.
 - **Pattern to copy.** The rename dialogs for the look, the plugin confirm dialog for "a worker asks the person", and the relay of `editor.open` for the path from worker to renderer.
 - **Open.** The concerns of the maintainers are not yet known. The cost is an estimate from those built-ins.
 
