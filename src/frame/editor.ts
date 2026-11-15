@@ -3,7 +3,7 @@
 
 import { decodeMessages, toJson } from '../common/codec';
 import { evaluateWhen } from '../common/when';
-import { showMenu, closeMenu, writeClipboard } from './menu';
+import { showMenu, closeMenu, writeClipboard, lastClipboardResult } from './menu';
 
 declare const orca: any;
 
@@ -45,6 +45,7 @@ function snapshot(): { summary: object; image: string } {
       values: text('.value-display-item'),
       canvases: canvases.map((c) => [c.id || c.className, c.width, c.height]),
       menu: [...document.querySelectorAll('.vv-menu')].map((m) => [...m.children].map((n) => (n.className === 'vv-menu-sep' ? '---' : n.firstChild?.textContent ?? ''))),
+      clipboard: lastClipboardResult,
       errors: pageErrors.slice(-10),
     },
     image: out.toDataURL('image/jpeg', 0.7).split(',')[1] ?? '',

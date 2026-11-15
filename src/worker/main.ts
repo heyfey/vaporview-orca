@@ -31,6 +31,8 @@ const SETTING_PREFIX = 'vaporview.';
 const HIDDEN_MESSAGES: RegExp[] = [
   // vaporview reads the colors of the VS Code color theme at its start. Orca has no such theme.
   /^Error getting user theme/,
+  // A question with buttons that the person cannot answer in Orca.
+  /^Restore state from file:/,
 ];
 // vaporview asks "Yes" or "No" before it adds more than 48 signals at one time.
 const ADD_MANY_SIGNALS = /^You are about to add a large number of signals/;
@@ -193,7 +195,10 @@ export default async function activate(orca: any): Promise<void> {
     },
     statusBarChanged,
     // The worker has no clipboard. A frame writes the text.
-    clipboardWrite: (text: string) => orca.panels.post('clipboard.write', { text }),
+    clipboardWrite: (text: string) => {
+      log(`clipboard: ${text.length} characters, starts with ${JSON.stringify(text.slice(0, 60))}`);
+      orca.panels.post('clipboard.write', { text });
+    },
   });
   await activateVaporview(createExtensionContext());
   const provider = registry.customEditors.get(VIEW_TYPE)!.provider;

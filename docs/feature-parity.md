@@ -140,7 +140,7 @@ buttons). In VS Code a message is a notification. In the plugin a message shows 
 |---|---|---|---|---|---|---|
 | 1 | "Error getting user theme. If you are seeing this while using VS Code SSH…" | `viewer_provider.ts:167` | At the start, when vaporview cannot read the VS Code color theme | Yes, at each start | Hidden. It goes to the log only. | done |
 | 2 | "You are about to add a large number of signals…" (Yes, No) | `viewer_provider.ts:1267` | More than 48 signals in one action | Yes | No message. The plugin adds the signals. | done |
-| 3 | "Restore state from file: `<name>.json`?" (Yes, No, Settings) | `viewer_provider.ts:720` | A `<name>.json` is beside the waveform file and the page has no saved state | Yes | The text shows, and the person cannot answer | open: hide |
+| 3 | "Restore state from file: `<name>.json`?" (Yes, No, Settings) | `viewer_provider.ts:720` | A `<name>.json` is beside the waveform file and the page has no saved state | Yes | Hidden. It goes to the log only, and the file is not loaded. | done |
 | 4 | "WaveDrom JSON copied to clipboard." | `wavedrom.ts:155` | After "Copy Selection as WaveDrom" | Yes | Shows | open: keep |
 | 5 | "The number of transitions exceeds the maximum limit of N" | `wavedrom.ts:149` | The WaveDrom copy is cut at the limit | Yes | Shows | open: keep |
 | 6 | "Unknown number format: X" | `value_format.ts:701` | A value format id that vaporview does not know, for example from an old session file | Yes, rare | Shows | open: keep |

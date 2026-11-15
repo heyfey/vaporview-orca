@@ -104,17 +104,23 @@ window.addEventListener('keydown', (e) => { if (open.length && e.key === 'Escape
 window.addEventListener('blur', () => closeMenu());
 window.addEventListener('wheel', (e) => { if (open.length && !(e.target as HTMLElement)?.closest?.('.vv-menu')) { closeMenu(); } }, true);
 
+/** The result of the last clipboard write, for the development snapshot. */
+export let lastClipboardResult = '';
+
 /** Writes text to the clipboard. The worker cannot do this itself. */
 export async function writeClipboard(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
-  } catch {
+    lastClipboardResult = `ok, ${text.length} characters`;
+  } catch (err: any) {
     const area = document.createElement('textarea');
     area.value = text;
     area.style.cssText = 'position:fixed;left:-1000px;top:0';
     document.body.append(area);
     area.select();
-    try { document.execCommand('copy'); } catch { /* no clipboard access */ }
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch { /* no clipboard access */ }
     area.remove();
+    lastClipboardResult = `${copied ? 'ok with the fallback' : 'failed'}, ${text.length} characters (${err?.name ?? err})`;
   }
 }
