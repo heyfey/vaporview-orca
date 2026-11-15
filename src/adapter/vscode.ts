@@ -361,6 +361,13 @@ export class WebviewPanel {
     this.viewStateEmitter.fire({ webviewPanel: this });
   }
 
+  /** The host calls this to make the panel the active one. It always tells the extension. */
+  activate(): void {
+    this.active = true;
+    this.visible = true;
+    this.viewStateEmitter.fire({ webviewPanel: this });
+  }
+
   dispose(): void {
     this.disposeEmitter.fire();
     this.receiveEmitter.dispose();

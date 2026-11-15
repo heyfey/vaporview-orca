@@ -6,7 +6,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const waveform = process.argv[2] ?? path.join(here, '..', 'testdata', 'tpu.vcd');
+const waveform = process.argv[2] ?? path.join(here, 'data', 'tpu.vcd');
 const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vaporview-orca-'));
 const handlers = new Map();
 const posts = [];
@@ -106,16 +106,8 @@ const addAll = req('menu.run', { source: 'tree', id: top.items[0].id, command: '
 await probe;                           // the worker asks if the frame is alive
 const got = await poll2();             // the frame polls again, so it is alive
 await addAll;
-check(!posts.some((p) => p.event === 'ui.message') && got.some((m) => m.command === 'add-variable' && m.signalList.length > 48),
+check(!posts.some((p) => p.event === 'panel.message') && got.some((m) => m.command === 'add-variable' && m.signalList.length > 48),
   `"add all in scope" adds the signals with no question (${got.filter((m) => m.command === 'add-variable').map((m) => m.signalList.length)} signals)`);
-
-// A question that is not in the list of fixed answers goes to the pages and waits for the person.
-const asked = req('debug.ask', { message: 'Test question', items: ['A', 'B'] });
-let question;
-for (let i = 0; i < 40 && !question; i++) { await sleep(25); question = posts.find((p) => p.event === 'ui.message' && p.payload.items.length)?.payload; }
-check(question?.items.join(',') === 'A,B', 'another question goes to the pages with its buttons');
-await req('ui.answer', { id: question?.id, item: 'B' });
-check((await asked).answer === 'B' && posts.some((p) => p.event === 'ui.dismiss'), 'the answer of the person goes back to the worker');
 
 await req('panel.close', { docKey: hello.docKey });
 state = await req('panel.state', { workspace: context });

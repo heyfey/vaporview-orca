@@ -27,8 +27,8 @@ const WAVEFORM_SUFFIXES = ['.vcd', '.fst', '.ghw'];
 const EDITOR_ID = 'vaporview.waveformViewer';
 const SETTING_PREFIX = 'vaporview.';
 // Questions of vaporview that get a fixed answer, because Orca has no question dialog for a
-// plugin. Only questions in this list are answered with no person. A question that is not here
-// shows in the pages of the plugin with its buttons.
+// plugin. Only the questions in this list get an answer. Do not add a question that confirms
+// a risk, for example the remote viewer question about a token over plain HTTP.
 const AUTO_ANSWERS: { match: RegExp; answer: string }[] = [
   // More than 48 signals at one time ("Add Selected", "Add All Variables in Scope").
   { match: /^You are about to add a large number of signals/, answer: 'Yes' },
@@ -143,40 +143,23 @@ export default async function activate(orca: any): Promise<void> {
   const activeByWorkspace = new Map<string, string>();   // workspace key -> entry key
   let currentWorkspace: WorkspaceInfo | undefined;
 
-  // Messages. Orca gives a plugin only a desktop notification with no buttons, so the pages
-  // of the plugin show a message, with its buttons if it has some.
-  let messageId = 0;
-  const questions = new Map<number, (answer: string | undefined) => void>();
+  // Messages of vaporview show in the panel. Orca gives a plugin only a desktop notification.
   const notify = (level: string, message: string) => {
     log(`[${level}] ${message}`);
-    orca.panels.post('ui.message', { id: ++messageId, level, message, items: [] });
+    orca.panels.post('panel.message', { level, message });
   };
-  const ask = (level: string, message: string, items: string[]): Promise<string | undefined> => {
-    // Questions of vaporview that the plugin answers itself. The person is not asked.
+  // A question of vaporview (a message with buttons). Orca has no question dialog for a plugin,
+  // and the plugin shows none. A question in AUTO_ANSWERS gets its fixed answer. Each other
+  // question gets no answer, which is what VS Code gives when the person closes the question.
+  const ask = async (level: string, message: string, items: string[]): Promise<string | undefined> => {
     const rule = AUTO_ANSWERS.find((r) => r.match.test(message) && items.includes(r.answer));
     if (rule) {
-      log(`[${level}] ${message} -> ${rule.answer} (no question in Orca)`);
-      return Promise.resolve(rule.answer);
+      log(`[${level}] ${message} -> ${rule.answer}`);
+      return rule.answer;
     }
-    return askPerson(level, message, items);
+    notify(level, `${message} (not available in Orca: this needs an answer from you)`);
+    return undefined;
   };
-  // All other questions show in the pages of the plugin, with their buttons.
-  const askPerson = (level: string, message: string, items: string[]): Promise<string | undefined> => {
-    log(`[${level}] ${message} [${items.join(' | ')}]`);
-    const id = ++messageId;
-    orca.panels.post('ui.message', { id, level, message, items });
-    return new Promise((resolve) => questions.set(id, resolve));
-  };
-  // Development aid: asks a question in the pages, to test the buttons.
-  orca.panels.handle('debug.ask', (input: any) => askPerson('info', String(input?.message ?? 'Test question'), input?.items ?? ['Yes', 'No']).then((answer) => ({ answer: answer ?? null })));
-  orca.panels.handle('ui.answer', (input: any) => {
-    const resolve = questions.get(input?.id);
-    questions.delete(input?.id);
-    // The other pages remove the same question.
-    orca.panels.post('ui.dismiss', { id: input?.id });
-    resolve?.(typeof input?.item === 'string' ? input.item : undefined);
-    return { ok: !!resolve };
-  });
 
   // Settings. VS Code reads a setting without a wait, so the worker keeps a copy.
   let settings: Record<string, unknown> = {};
@@ -277,18 +260,20 @@ export default async function activate(orca: any): Promise<void> {
 
   const panelChanged = () => orca.panels.post('panel.changed', listFor(currentWorkspace));
 
-  /** Makes one document the active one of the vaporview core, so that the tree shows it. */
-  let treeOwner: string | undefined;
+  /**
+   * Makes one document the active one of the vaporview core, so that the tree shows it.
+   * VS Code does this with view state events when the person changes the tab.
+   */
+  let coreActive: Entry | undefined;
   function setActive(entry: Entry | undefined): void {
-    for (const e of entries.values()) {
-      if (e !== entry) { e.panel.setViewState(false, false); }
+    if (entry) { activeByWorkspace.set(entry.workspace.key, entry.key); }
+    if (coreActive !== entry) {
+      const before = coreActive;
+      coreActive = entry;
+      resetTree(true);
+      if (before && entries.has(before.key)) { before.panel.setViewState(false, false); }
+      entry?.panel.activate();
     }
-    if (entry) {
-      activeByWorkspace.set(entry.workspace.key, entry.key);
-      entry.panel.setViewState(true, true);
-    }
-    // The tree keeps its open nodes while the same waveform stays active.
-    if (treeOwner !== entry?.key) { treeOwner = entry?.key; resetTree(); }
     panelChanged();
   }
 
@@ -326,6 +311,10 @@ export default async function activate(orca: any): Promise<void> {
       } catch { /* a new file */ }
     }
     entries.set(key, entry);
+    // `resolveCustomEditor` made this document the active one of the core.
+    if (coreActive && coreActive !== entry) { coreActive.panel.active = false; coreActive.panel.visible = false; }
+    coreActive = entry;
+    resetTree(true);
     return entry;
   }
 
@@ -461,13 +450,20 @@ export default async function activate(orca: any): Promise<void> {
   let treeItems = new Map<number, any>();
   let treeIds = new Map<any, number>();
   let nextTreeId = 1;
-  function resetTree(): void { treeItems = new Map(); treeIds = new Map(); orca.panels.post('tree.changed', {}); }
+  /**
+   * Tells the panel to read the tree again. `full` is for a different waveform: the ids start
+   * again. A refresh of the same waveform keeps the ids, so the panel keeps its open nodes.
+   */
+  function resetTree(full = false): void {
+    if (full) { treeItems = new Map(); treeIds = new Map(); }
+    orca.panels.post('tree.changed', { full });
+  }
   function idOf(element: any): number {
     let id = treeIds.get(element);
     if (!id) { id = nextTreeId++; treeIds.set(element, id); treeItems.set(id, element); }
     return id;
   }
-  treeData.onDidChangeTreeData?.(() => resetTree());
+  treeData.onDidChangeTreeData?.(() => resetTree(false));
   // `reveal` shows an element in the panel. The panel needs the ids from the root to the element.
   tree.revealEmitter.event(async ({ element, options }) => {
     const chain: number[] = [];

@@ -2,7 +2,6 @@
 // selected waveform. The data comes from the worker.
 
 import { showMenu, writeClipboard, type MenuEntry } from './menu';
-import { installMessages } from './message';
 
 declare const orca: any;
 
@@ -44,12 +43,11 @@ const title = el('span', 'vv-title', 'Waveforms');
 const openButton = el('button', 'vv-button', 'Open Waveform');
 header.append(title, openButton);
 const messageBar = el('div', 'vv-message');
-const workerMessages = el('div');
 const browser = el('div', 'vv-browser');
 const list = el('div', 'vv-list');
 const treeTitle = el('div', 'vv-section', 'Netlist');
 const tree = el('div', 'vv-tree');
-root.append(header, messageBar, workerMessages, browser, list, treeTitle, tree);
+root.append(header, messageBar, browser, list, treeTitle, tree);
 document.body.append(root);
 
 let state: ListState = { workspace: null, waveforms: [], active: null };
@@ -158,6 +156,8 @@ openButton.addEventListener('click', () => {
 type NodeView = { node: TreeNode; row: HTMLElement; open: () => Promise<void> };
 let views = new Map<number, NodeView>();
 let selected = new Set<number>();
+/** The nodes that are open. A refresh of the same waveform opens them again. */
+let openIds = new Set<number>();
 
 function setSelection(ids: number[]): void {
   for (const id of selected) { views.get(id)?.row.classList.remove('selected'); }
@@ -198,6 +198,7 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   const setOpen = async (next: boolean): Promise<void> => {
     if (!node.expandable || isOpen === next) { return loaded; }
     isOpen = next;
+    if (isOpen) { openIds.add(node.id); } else { openIds.delete(node.id); }
     twist.textContent = isOpen ? '▾' : '▸';
     children.style.display = isOpen ? '' : 'none';
     void request('tree.action', { id: node.id, action: isOpen ? 'expand' : 'collapse' });
@@ -229,12 +230,15 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   });
   views.set(node.id, { node, row, open: () => setOpen(true) as Promise<void> });
   wrap.append(row, children);
+  if (selected.has(node.id)) { row.classList.add('selected'); }
+  if (openIds.has(node.id)) { void run(() => setOpen(true) as Promise<void>); }
   return wrap;
 }
 
-function reloadTree(): void {
+/** Reads the tree again. `full` is for a different waveform, which starts with all nodes closed. */
+function reloadTree(full = true): void {
   views = new Map();
-  selected = new Set();
+  if (full) { selected = new Set(); openIds = new Set(); }
   if (state.active) { void run(() => loadChildren(tree)); } else { tree.replaceChildren(); }
 }
 
@@ -259,9 +263,9 @@ async function refresh(context?: unknown): Promise<void> {
 }
 
 orca.plugin.on('panel.changed', (next: ListState) => { state = next; renderList(); });
-orca.plugin.on('tree.changed', () => reloadTree());
+orca.plugin.on('tree.changed', (p: { full?: boolean }) => reloadTree(p?.full === true));
 orca.plugin.on('tree.reveal', (p: { path: number[]; select: boolean }) => void run(() => reveal(p.path ?? [], p.select)));
-installMessages(workerMessages);
+orca.plugin.on('panel.message', (m: { level: string; message: string }) => showMessage(m.message, m.level));
 orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });
 orca.on('workspace.changed', (p: { context: unknown }) => void run(() => refresh(p?.context ?? null)));
 renderList();
