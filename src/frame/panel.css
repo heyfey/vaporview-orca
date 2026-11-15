@@ -1,0 +1,32 @@
+html, body { margin: 0; height: 100%; }
+body { font: 12px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--orca-foreground); background: var(--orca-background); }
+.vv-panel { display: flex; flex-direction: column; height: 100vh; }
+.vv-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid var(--orca-border); }
+.vv-title, .vv-section { font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; color: var(--orca-muted-foreground); }
+.vv-section { padding: 6px 8px 2px; border-top: 1px solid var(--orca-border); }
+.vv-button { font: inherit; color: var(--orca-primary-foreground); background: var(--orca-primary); border: 0; border-radius: calc(var(--orca-radius, 6px) - 2px); padding: 2px 8px; cursor: pointer; }
+.vv-icon { font: inherit; width: 20px; height: 20px; line-height: 18px; padding: 0; color: var(--orca-muted-foreground); background: transparent; border: 0; border-radius: 4px; cursor: pointer; flex: none; }
+.vv-icon:hover { background: var(--orca-accent); color: var(--orca-accent-foreground); }
+.vv-message { display: none; padding: 4px 8px; color: var(--orca-destructive); }
+.vv-message[data-level="info"] { color: var(--orca-muted-foreground); }
+.vv-message[data-level="warning"] { color: var(--orca-foreground); }
+.vv-empty { padding: 8px; color: var(--orca-muted-foreground); }
+.vv-row, .vv-node-row, .vv-entry { display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; cursor: pointer; white-space: nowrap; }
+.vv-row:hover, .vv-node-row:hover, .vv-entry:hover { background: var(--orca-accent); }
+.vv-row.active, .vv-node-row.selected { background: var(--orca-accent); color: var(--orca-accent-foreground); }
+.vv-row.active .vv-name { font-weight: 600; }
+.vv-name { overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 70%; }
+.vv-dim { color: var(--orca-muted-foreground); overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.vv-row .vv-icon, .vv-add { visibility: hidden; }
+.vv-row:hover .vv-icon, .vv-node-row:hover .vv-add { visibility: visible; }
+.vv-list { flex: none; max-height: 35vh; overflow: auto; }
+.vv-tree { flex: 1; overflow: auto; font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; }
+.vv-twist { width: 12px; flex: none; color: var(--orca-muted-foreground); }
+.vv-browser { border-bottom: 1px solid var(--orca-border); }
+.vv-browser:empty { display: none; }
+.vv-pathbar { display: flex; gap: 4px; padding: 6px 8px; }
+.vv-input { flex: 1; min-width: 0; font: inherit; color: var(--orca-foreground); background: var(--orca-background); border: 1px solid var(--orca-border); border-radius: 4px; padding: 2px 6px; }
+.vv-input:focus { outline: 1px solid var(--orca-ring); }
+.vv-entries { max-height: 40vh; overflow: auto; }
+.vv-entry.folder::before { content: "▸"; color: var(--orca-muted-foreground); }
+.vv-entry.file { font-weight: 600; }

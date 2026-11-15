@@ -9,7 +9,9 @@
     "build:vaporview": "cd vaporview && npm ci --no-audit --no-fund && npm run compile-wasm",
     "build": "node scripts/build.mjs",
     "test:headless": "node scripts/build.mjs --headless && node build/headless.mjs",
-    "sync": "bash scripts/sync-windows.sh"
+    "sync": "bash scripts/sync-windows.sh",
+    "test:hub": "node scripts/build.mjs && node test/hub.mjs",
+    "test": "npm run test:headless && npm run test:hub"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

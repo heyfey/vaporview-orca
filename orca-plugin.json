@@ -1,0 +1,27 @@
+{
+  "manifestVersion": 2,
+  "id": "vaporview",
+  "name": "Vaporview",
+  "version": "0.1.0",
+  "description": "Waveform viewer for VCD, FST, and GHW files. A port of the VS Code extension vaporview.",
+  "engines": { "orca": ">=1.4.248" },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "worker.js",
+  "contributes": {
+    "panels": [
+      { "id": "waveforms", "title": "Vaporview", "icon": "activity", "entry": "panel.html", "ui": "html" }
+    ],
+    "customEditors": [
+      { "id": "waveform", "title": "Vaporview", "extensions": [".vaporview.json"], "entry": "editor.html", "frame": "isolated" }
+    ],
+    "statusBarItems": [
+      { "id": "vaporview", "icon": "activity", "tooltip": "Vaporview" }
+    ],
+    "events": [ { "on": "workspace.changed" } ]
+  },
+  "capabilities": [
+    { "kind": "workspace:read" },
+    { "kind": "workspace:write" }
+  ]
+}

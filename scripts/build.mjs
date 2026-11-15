@@ -70,7 +70,40 @@ await Promise.all([
 if (headless) {
   await esbuild.build({ ...nodeBundle, entryPoints: [path.join(root, 'test', 'headless.ts')], outfile: path.join(root, 'build', 'headless.mjs') });
   console.log('built build/headless.mjs');
-} else if (fs.existsSync(path.join(root, 'src', 'worker', 'main.ts'))) {
-  await esbuild.build({ ...nodeBundle, entryPoints: [path.join(root, 'src', 'worker', 'main.ts')], outfile: path.join(out, 'worker.js') });
-  console.log('built build/plugin');
+  process.exit(0);
 }
+
+const frameBundle = { bundle: true, platform: 'browser', format: 'iife', target: ['es2022'], logLevel: 'warning' };
+await Promise.all([
+  esbuild.build({ ...nodeBundle, sourcemap: false, entryPoints: [path.join(root, 'src', 'worker', 'main.ts')], outfile: path.join(out, 'worker.js') }),
+  esbuild.build({ ...frameBundle, entryPoints: [path.join(root, 'src', 'frame', 'editor.ts')], outfile: path.join(out, 'editor.js') }),
+  esbuild.build({ ...frameBundle, entryPoints: [path.join(root, 'src', 'frame', 'panel.ts')], outfile: path.join(out, 'panel.js') }),
+]);
+
+// Assets of the webview.
+copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'), path.join(ext, 'codicons', 'codicon.css'));
+copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf'), path.join(ext, 'codicons', 'codicon.ttf'));
+copy(path.join(root, 'src', 'frame', 'orca-theme.css'), path.join(out, 'orca-theme.css'));
+copy(path.join(root, 'src', 'frame', 'panel.css'), path.join(out, 'panel.css'));
+copy(path.join(root, 'orca-plugin.json'), path.join(out, 'orca-plugin.json'));
+copy(path.join(root, 'LICENSE'), path.join(out, 'LICENSE'));
+
+// The editor page is the vaporview webview page. Orca puts it after its own <head>, so the
+// page here has no <html> and <head> elements. The start code loads the vaporview webview.
+const page = fs.readFileSync(path.join(vv, 'media', 'webview.html'), 'utf8');
+const body = page.slice(page.indexOf('<body'), page.indexOf('</body>'))
+  .replace('<script src="${webAssets.jsFileUri}"></script>', '');
+if (body.includes('${webAssets')) { throw new Error('webview.html has a placeholder that the build does not know'); }
+fs.writeFileSync(path.join(out, 'editor.html'), [
+  '<link rel="stylesheet" href="ext/codicons/codicon.css">',
+  '<link rel="stylesheet" href="orca-theme.css">',
+  '<link rel="stylesheet" href="ext/media/style.css">',
+  body,
+  '<script src="editor.js"></script>',
+  '</body>',
+  '',
+].join('\n'));
+fs.writeFileSync(path.join(out, 'panel.html'), '<link rel="stylesheet" href="panel.css">\n<body>\n<script src="panel.js"></script>\n</body>\n');
+
+const size = (f) => (fs.statSync(path.join(out, f)).size / 1024).toFixed(0) + ' KiB';
+console.log(`built build/plugin: worker.js ${size('worker.js')}, ext/dist/webview.js ${size('ext/dist/webview.js')}, editor.js ${size('editor.js')}, panel.js ${size('panel.js')}`);
