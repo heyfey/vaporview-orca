@@ -14,20 +14,27 @@ What vaporview has, and what the Orca plugin has. Update this file with each cha
 | Blocked | Not in the plugin, because Orca has no API for it. The row names the Orca PR. |
 | Deferred | Not in the plugin in this phase, by decision. No Orca limit. |
 
-The column "Built" is `no` until the code exists and is tested. At this time no viewer code exists,
-so each status is the plan.
+The column "Built" is `no` until the code exists. Many rows with `no` possibly work already,
+because the vaporview code runs unchanged, but nobody tested them in Orca.
+
+Known limits of the prototype:
+
+- The same waveform file in two workspaces loads two times.
+- The context menus (viewer and tree) are not built, so the features that are only in a menu cannot be reached.
+- The signal colors are fixed, because Orca has no color theme for syntax tokens.
+- Auto reload does not work for a file on a `\\wsl.localhost` path (Node cannot watch it).
 
 ## Open, close, and tabs
 
 | Feature | vaporview | Status | Built | Reason | Orca PR |
 |---|---|---|---|---|---|
 | Open from the file explorer | Click a `.vcd`, `.fst`, `.ghw`, `.fsdb` file | Blocked | no | A custom editor gets no path, and Orca reads the file first (64 MiB limit) | PR-1 |
-| Open with a command | "Open File with VaporView" | Tweaked | no | "Open Waveform" is in the panel, not in the palette. A palette command gets no arguments. | PR-2, PR-7 |
-| Select the file | VS Code file dialog | Tweaked | no | File browser in the panel, because a plugin has no open-file dialog | PR-2 |
-| Tab title | The waveform file name, for example `tpu.vcd` | Tweaked | no | The tab shows the session file name, for example `tpu.vcd.vaporview.json`, with the plugin icon | PR-1 |
+| Open with a command | "Open File with VaporView" | Tweaked | yes | "Open Waveform" is in the panel, not in the palette. A palette command gets no arguments. | PR-2, PR-7 |
+| Select the file | VS Code file dialog | Tweaked | yes, not yet tested by hand | File browser in the panel, because a plugin has no open-file dialog | PR-2 |
+| Tab title | The waveform file name, for example `tpu.vcd` | Tweaked | yes | The tab shows the session file name, for example `tpu.vcd.vaporview.json`, with the plugin icon | PR-1 |
 | More than one waveform open | One tab for each waveform | Same | no | | |
-| Waveform list | None (sv-pathfinder has it) | Tweaked | no | New list in the panel, one list for each Orca workspace | |
-| Close a waveform | Close the tab | Tweaked | no | Close in the panel. The tab stays and shows "closed". | PR-4, PR-3 |
+| Waveform list | None (sv-pathfinder has it) | Tweaked | yes | New list in the panel, one list for each Orca workspace | |
+| Close a waveform | Close the tab | Tweaked | yes | Close in the panel. The tab stays and shows "closed". | PR-4, PR-3 |
 | Keep a hidden tab alive | Yes (`retainContextWhenHidden`) | Blocked | no | Orca destroys the page of a hidden tab. Each return loads the signal data again. | PR-5, PR-6 |
 | Reload file | "Reload File", auto reload check box | Same | no | | |
 | Restore after restart | VS Code restores the tab and its state | Same | no | Orca restores the tab, and the session file gives the state | |
@@ -36,7 +43,7 @@ so each status is the plan.
 
 | Feature | vaporview | Status | Built | Reason | Orca PR |
 |---|---|---|---|---|---|
-| VCD, FST, GHW | `wellen` in WASM | Same | no | | |
+| VCD, FST, GHW | `wellen` in WASM | Same | VCD tested, FST and GHW not yet | | |
 | FSDB | Native addon with Synopsys libraries | Deferred | no | Decision on remote access first | |
 | Remote viewer (Surfer server) | "Open Remote Viewer" | Deferred | no | Decision on remote access first. Also needs an input prompt. | PR-7 |
 
@@ -44,10 +51,10 @@ so each status is the plan.
 
 | Feature | vaporview | Status | Built | Reason | Orca PR |
 |---|---|---|---|---|---|
-| Waveform drawing, zoom, scroll, ruler | Webview canvas | Same | no | Same code | |
+| Waveform drawing, zoom, scroll, ruler | Webview canvas | Same | drawing tested, zoom and scroll not yet | Same code | |
 | Control bar (zoom, edge steps, time field, value search, auto reload) | Webview HTML | Same | no | Same code | |
 | Marker and alt marker | Yes | Same | no | | |
-| Signal load speed | Binary messages to the webview | Tweaked | no | Signal data goes as base64 text in JSON, 1 MiB for each answer, 120 messages in 10 s. Slow for large signals. | PR-6 |
+| Signal load speed | Binary messages to the webview | Tweaked | yes | Signal data goes as base64 text in JSON, 1 MiB for each answer, 120 messages in 10 s. Slow for large signals. | PR-6 |
 | Row select, multi select, reorder | Yes | Same | no | | |
 | Groups (new, from selection, rename, ungroup, delete) | Yes | Same | no | | |
 | Separators | Yes | Same | no | | |
@@ -73,7 +80,7 @@ so each status is the plan.
 
 | Feature | vaporview | Status | Built | Reason | Orca PR |
 |---|---|---|---|---|---|
-| Netlist tree | VS Code tree view | Tweaked | no | HTML tree in the panel. The Orca `Tree` component stops at 2000 items. | |
+| Netlist tree | VS Code tree view | Tweaked | yes (open a scope, add a variable) | HTML tree in the panel. The Orca `Tree` component stops at 2000 items. | |
 | Add, remove, add all in scope (shallow, recursive), remove all in scope | Tree menu | Same | no | | |
 | Show in viewer, show in netlist view | Yes | Same | no | | |
 | Search netlist, search scope | VS Code tree search | Tweaked | no | Search field in the panel | |
@@ -85,7 +92,7 @@ so each status is the plan.
 
 | Feature | vaporview | Status | Built | Reason | Orca PR |
 |---|---|---|---|---|---|
-| Automatic view state | VS Code webview state | Tweaked | no | Session file in `.vaporview/`, written by the worker | |
+| Automatic view state | VS Code webview state | Tweaked | yes, restore not yet tested in Orca | Session file in `.vaporview/`, written by the worker | |
 | Save session, load session | Save and open dialogs | Tweaked | no | Later phase. "Save" can use `files.saveAs`. "Load" needs a file selection. | PR-2 |
 | Settings (33) | VS Code settings | Same | no | Orca settings. Scalar types only. | |
 | "More Settings", "Show Readme" | Open VS Code pages | Tweaked | no | Open the Orca settings page of the plugin, open the readme link | |

@@ -65,6 +65,36 @@ behind each difference, and the change to propose to Orca for that limit.
 | Viewer | Webview. Only `vscode_wrapper.ts` talks to VS Code ([vscode_wrapper.ts:13](../vaporview/src/webview/vscode_wrapper.ts#L13)). | Editor frame (HTML custom editor). A second wrapper talks to Orca. |
 | Tree | `TreeDataProvider` in the VS Code sidebar ([tree_view.ts:192](../vaporview/src/extension_core/tree_view.ts#L192)) | HTML panel in the Orca sidebar, with `--orca-*` style variables |
 
+## How the plugin runs the vaporview code
+
+The plugin does not copy or change the vaporview code. It runs it on three small adapters.
+
+| Adapter | File | What it replaces |
+|---|---|---|
+| `vscode` module for the worker | [src/adapter/vscode.ts](../src/adapter/vscode.ts) | The VS Code extension API. The build gives this file the module name `vscode`, so `vaporview/src/extension_core` runs unchanged: `activate()`, the custom editor provider, the documents, the parser, the commands, the tree data provider. |
+| `acquireVsCodeApi` for the editor frame | [src/frame/editor.ts](../src/frame/editor.ts) | The VS Code webview API. The vaporview webview bundle and its HTML page run unchanged. |
+| Tree view for the panel | [src/frame/panel.ts](../src/frame/panel.ts) | The VS Code tree view. It draws what the vaporview `TreeDataProvider` gives. |
+
+The worker hub ([src/worker/main.ts](../src/worker/main.ts)) does what VS Code does for an
+extension: it calls `openCustomDocument` and `resolveCustomEditor`, gives each document a
+`WebviewPanel` object, and moves the messages between that object and the frame.
+
+Rules of the adapter:
+
+- A VS Code API with no Orca equivalent is a no-op that writes one log line (for example terminal
+  links). An input box and a quick pick answer as if the person cancelled.
+- Orca workarounds are in the hub, each in one named part: `FrameLink` (message transport),
+  the session file, and the file browser.
+- The message format is in one file, [src/common/codec.ts](../src/common/codec.ts). It is the only
+  file to change when Orca gets a byte transport (PR-6).
+
+Result: a new vaporview version needs only a submodule update, unless it uses a VS Code API that
+the adapter does not have yet. No change to vaporview was necessary for the prototype.
+
+Message transport today (`FrameLink`): the frame pulls. It keeps one `editor.poll` request open,
+and the worker answers with a batch of messages. The frame sends its own messages in batches, one
+each 200 ms. Both directions stay below Orca's limit of 120 messages in 10 s.
+
 ## Decisions
 
 Each row gives the vaporview behavior, the plugin behavior, the Orca limit, and the PR candidate.
@@ -79,7 +109,7 @@ Each row gives the vaporview behavior, the plugin behavior, the Orca limit, and 
 | What the tab opens | The waveform file | An internal session file `.vaporview/<waveform file name>.vaporview.json`. The worker makes it and calls `editor.open`. Tested: the longer suffix opens in the custom editor by default. | Same as "Open a waveform file" | PR-1 |
 | Identity | Document URI | Absolute path of the waveform file. The worker key is workspace plus path. | None | |
 | One waveform file, two tabs | `supportsMultipleEditorsPerDocument: false` ([extension.ts:44](../vaporview/src/extension_core/extension.ts#L44)) | Same workspace: select the open tab. Tested: `editor.open` on an open file uses the open tab. Different workspace: one tab for each workspace. | None | |
-| Workspace | One workspace | One waveform list for each workspace. Key: `workspaceId` (host API 1.7). Fallback for older Orca: name plus branch. | Fixed in Orca host API 1.7 | Done |
+| Workspace | One workspace | One waveform list for each workspace. Key: the workspace id, which the worker reads itself (host API 1.7). A frame gets only the name and the branch. Fallback for older Orca: name plus branch. | Tested: Orca gives the workspace id to the worker only, because the id contains a path | Done |
 
 ### Panel (use model of sv-pathfinder)
 
@@ -161,19 +191,12 @@ Input boxes and quick picks in vaporview:
 
 ## Code reuse
 
-| Code | Lines | Plan |
+| Code | Lines | Use |
 |---|---|---|
-| `vaporview/src/webview/*` | 8,196 | Use as it is, but replace `vscode_wrapper.ts` with an Orca wrapper |
-| `vaporview/src/wellen_parser` (Rust to WASM) | | Use as it is |
-| `document.ts`, `wasm_handler.ts`, `worker.ts` | | Use the logic. Remove the direct `vscode` calls behind a host interface. |
-| `commands.ts`, `viewer_provider.ts` | | Use the command logic. The VS Code provider code does not move. |
-| `tree_view.ts` | | Use the data logic. The drawing is new HTML. |
-| Worker hub, Orca wrapper, panel, HTML menus, input box, file browser | | New |
-
-Changes to propose to vaporview upstream (general and backward compatible), to decide in step 2:
-
-- A host interface between the logic and `vscode`, with the VS Code implementation as the default.
-- `src/common/types.ts` imports `vscode` only for types. A type-only import keeps it usable outside VS Code.
+| `vaporview/src/extension_core/*` | 6,008 | Runs unchanged on the `vscode` adapter |
+| `vaporview/src/webview/*` and `media/webview.html`, `media/style.css` | 8,196 | Run unchanged in the editor frame |
+| `vaporview/src/wellen_parser` (Rust to WASM) | | Unchanged |
+| Adapters, worker hub, panel, theme map, build | about 1,500 | New, in `src/` and `scripts/` |
 
 ## Not in this phase
 

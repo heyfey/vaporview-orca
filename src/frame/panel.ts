@@ -208,4 +208,5 @@ orca.plugin.on('panel.changed', (next: ListState) => { state = next; renderList(
 orca.plugin.on('tree.changed', () => reloadTree());
 orca.plugin.on('panel.message', (m: { level: string; message: string }) => showMessage(m.message, m.level));
 orca.on('workspace.changed', (p: { context: unknown }) => void run(() => refresh(p?.context ?? null)));
+renderList();
 void run(() => refresh());

@@ -44,8 +44,10 @@ $ORCA plugin dev unload 'C:\Users\<user>\orca-plugin-dev\vaporview-probe' --json
 | 16 | Is the caller id stable? | Only while Orca runs. After an Orca restart the editor caller id was different. | Do not save a caller id. |
 | 17 | What does a restored tab do at an Orca start? | The frame started two times in 2 s (two instances, the first one stopped). | The start of a frame must be cheap and safe to repeat. |
 | 18 | Does a development plugin stay loaded after an Orca update? | Yes. The plugin ran after the update to 1.4.259 with no new approval. | |
+| 19 | Does a frame get the workspace id? | No (1.4.259). Only the worker gets `workspaceId` from `workspace.readContext`. A panel or editor frame gets `displayName` and `branch`. | The worker must find the workspace itself. |
+| 20 | Can the CLI take a screenshot while the Orca window shows? | `plugin shot --panel` and `plugin shot --editor` work. The editor shot starts a new frame and captures it at its first paint, so it shows the load text. | For the editor, use the `debug.snapshot` request of the plugin. |
 
-Row 14 on Orca 1.4.259: `workspace.readContext` and `workspace.changed` give `workspaceId`.
+Row 14 on Orca 1.4.259: `workspace.readContext` and `workspace.changed` give `workspaceId` to the worker.
 
 ## Not tested
 
