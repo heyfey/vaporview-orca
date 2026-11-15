@@ -26,6 +26,15 @@ const SESSION_SUFFIX = '.vaporview.json';
 const WAVEFORM_SUFFIXES = ['.vcd', '.fst', '.ghw'];
 const EDITOR_ID = 'vaporview.waveformViewer';
 const SETTING_PREFIX = 'vaporview.';
+// Questions of vaporview that get a fixed answer, because Orca has no question dialog for a
+// plugin. Only questions in this list are answered with no person. A question that is not here
+// shows in the pages of the plugin with its buttons.
+const AUTO_ANSWERS: { match: RegExp; answer: string }[] = [
+  // More than 48 signals at one time ("Add Selected", "Add All Variables in Scope").
+  { match: /^You are about to add a large number of signals/, answer: 'Yes' },
+  // A session file `<name>.json` is beside the waveform file and the page has no saved state.
+  { match: /^Restore state from file:/, answer: 'Yes' },
+];
 // The status bar items of the manifest, in the order in which vaporview makes its items.
 const STATUS_IDS = ['vaporview-marker', 'vaporview-delta', 'vaporview-signal'];
 
@@ -143,11 +152,23 @@ export default async function activate(orca: any): Promise<void> {
     orca.panels.post('ui.message', { id: ++messageId, level, message, items: [] });
   };
   const ask = (level: string, message: string, items: string[]): Promise<string | undefined> => {
+    // Questions of vaporview that the plugin answers itself. The person is not asked.
+    const rule = AUTO_ANSWERS.find((r) => r.match.test(message) && items.includes(r.answer));
+    if (rule) {
+      log(`[${level}] ${message} -> ${rule.answer} (no question in Orca)`);
+      return Promise.resolve(rule.answer);
+    }
+    return askPerson(level, message, items);
+  };
+  // All other questions show in the pages of the plugin, with their buttons.
+  const askPerson = (level: string, message: string, items: string[]): Promise<string | undefined> => {
     log(`[${level}] ${message} [${items.join(' | ')}]`);
     const id = ++messageId;
     orca.panels.post('ui.message', { id, level, message, items });
     return new Promise((resolve) => questions.set(id, resolve));
   };
+  // Development aid: asks a question in the pages, to test the buttons.
+  orca.panels.handle('debug.ask', (input: any) => askPerson('info', String(input?.message ?? 'Test question'), input?.items ?? ['Yes', 'No']).then((answer) => ({ answer: answer ?? null })));
   orca.panels.handle('ui.answer', (input: any) => {
     const resolve = questions.get(input?.id);
     questions.delete(input?.id);

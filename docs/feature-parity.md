@@ -117,7 +117,10 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Change a setting from the viewer | For example scrolling mode | Same | yes | no | |
 | Status bar: marker time, delta time, selected signal | 3 items | Same | yes | Orca | Orca status bar items |
 | Messages (information, warning, error) | VS Code notification | Tweaked | yes | Orca | A message bar in the panel and in the viewer page. Orca gives a plugin only a desktop notification. |
-| Questions with buttons, for example "add a large number of signals: Yes, No" | VS Code notification with buttons | Tweaked | yes | Orca (events) | The message bar has the buttons. The first answer from one page closes the question in the other page. Orca has no confirm API for a plugin. PR-7 (deferred) |
+| Question before more than 48 signals are added ("Yes", "No") | VS Code notification with buttons | Tweaked | yes | Node | No question. The plugin answers "Yes" (decision of 2026-11-15). Orca has no question dialog for a plugin. PR-7 (deferred) |
+| Question "Restore state from file" (a `<name>.json` beside the waveform file, with no saved state) | "Yes", "No", "Settings" | Tweaked | yes | no | No question. The plugin answers "Yes". |
+| Questions of the remote viewer ("Reconnect", "Connect Anyway" for a token over plain HTTP) | VS Code notification, one of them modal | Deferred | no | | Remote access is deferred. These must stay real questions. |
+| Other questions with buttons | VS Code notification with buttons | Tweaked | yes | Orca (events) | Buttons in the message bar of the panel and of the viewer page. vaporview has no other question now. |
 
 ## Integration
 
