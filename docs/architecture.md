@@ -168,13 +168,13 @@ The logic is shared. Only the code that draws is new.
 
 | Topic | vaporview | Orca plugin | Orca limit |
 |---|---|---|---|
-| Context menu of the viewer | 36 items in `webview/context` ([package.json:657](../vaporview/package.json#L657)), selected by `data-vscode-context` ([signal_item.ts:156](../vaporview/src/webview/signal_item.ts#L156)) | HTML menu in the frame. It reads the same item table and the same `when` conditions from the vaporview `package.json`, and it sends the same command ids. | No menu contribution |
-| Context menu of the tree | 14 items in `view/item/context` | HTML menu in the panel, same method | No menu contribution |
+| Context menu of the viewer | 36 items in `webview/context` ([package.json:657](../vaporview/package.json#L657)), selected by `data-vscode-context` ([signal_item.ts:156](../vaporview/src/webview/signal_item.ts#L156)) | Built. The page collects the `data-vscode-context` values under the pointer. The worker selects the items with the `when` conditions of the vaporview `package.json` ([menus.ts](../src/worker/menus.ts), [when.ts](../src/common/when.ts)). The page draws the menu ([menu.ts](../src/frame/menu.ts)) and the worker runs the same command with the same argument. | No menu contribution |
+| Context menu of the tree | 14 items in `view/item/context` | Built, same method. The items of the group `inline` are buttons on the row. | No menu contribution |
 | Commands | 107 commands, handlers in `commands.ts` | The same handlers in the worker. They call a small host interface, not `vscode`. A subset goes in the Orca command palette. | A palette command gets no arguments |
 | Keybindings | 17, active only when the viewer has focus | Key events in the frame. Tested: the frame gets focus, plain keys, pointer, and context menu events. Keys with Ctrl or Alt are not yet tested. | `when` is only `global` or `workspace` |
-| Input boxes | See the list below | Not in the plugin. The features that need an input box are blocked until Orca has an input prompt (PR-7). | No input prompt and no quick pick for a plugin |
-| Status bar | 3 items: marker time, delta time, selected signal ([tree_view.ts:398](../vaporview/src/extension_core/tree_view.ts#L398)) | `statusBarItems` plus `statusBar.update`. One item also keeps the worker alive. | 8 items maximum |
-| Settings | 33 settings | Orca `settings` | 64 maximum, scalar types only |
+| Input boxes | See the list below | Not in the plugin. The menus do not show a command that needs an input box, a quick pick, or a file dialog (list in [menus.ts](../src/worker/menus.ts)). | No input prompt and no quick pick for a plugin |
+| Status bar | 3 items: marker time, delta time, selected signal ([tree_view.ts:398](../vaporview/src/extension_core/tree_view.ts#L398)) | Built. `statusBarItems` plus `statusBar.update`. The items also keep the worker alive. | 8 items maximum |
+| Settings | 33 settings | Built. The build makes the Orca `settings` from the vaporview `package.json`. The worker keeps a copy, because VS Code reads a setting with no wait. | 64 maximum, scalar types only |
 
 Input boxes and quick picks in vaporview:
 

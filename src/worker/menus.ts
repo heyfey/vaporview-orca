@@ -19,6 +19,26 @@ function splitGroup(group: string | undefined): { name: string; order: number } 
   return { name: group.slice(0, at), order: Number(group.slice(at + 1)) || 0 };
 }
 
+/**
+ * Commands that cannot work in Orca now. The menus do not show them. Each one is in
+ * docs/feature-parity.md with its reason.
+ */
+export const UNAVAILABLE_COMMANDS: Record<string, string> = {
+  'vaporview.newSignalFromBitRange': 'input box',
+  'vaporview.createSignalsForAllCustomLength': 'input box',
+  'vaporview.setRulerTimeIncrement': 'input box',
+  'vaporview.displayAsFixedPoint': 'input box',
+  'vaporview.displayAsFixedPointSigned': 'input box',
+  'vaporview.addVariableByInstancePath': 'input box',
+  'vaporview.searchNetlist': 'quick pick',
+  'vaporview.searchScope': 'quick pick',
+  'vaporview.saveViewerSession': 'file dialog',
+  'vaporview.loadViewerSession': 'file dialog',
+  'vaporview.viewVaporViewSettings': 'VS Code settings page',
+  'vaporview.showReadme': 'VS Code markdown preview',
+  'vaporview.openRemoteViewer': 'input box, and remote access is deferred',
+};
+
 export class Menus {
   private titles = new Map<string, string>();
   private icons = new Map<string, string>();
@@ -35,7 +55,7 @@ export class Menus {
     }
     for (const sub of c.submenus ?? []) { this.submenus.set(sub.id, { label: sub.label, when: sub.when }); }
     this.menus = c.menus ?? {};
-    this.keybindings = c.keybindings ?? [];
+    this.keybindings = (c.keybindings ?? []).filter((k: Keybinding) => !(k.command in UNAVAILABLE_COMMANDS));
   }
 
   title(command: string): string { return this.titles.get(command) ?? command; }
@@ -54,6 +74,7 @@ export class Menus {
       if (!evaluateWhen(raw.when, context)) { return; }
       let entry: MenuEntry | undefined;
       if (raw.command) {
+        if (raw.command in UNAVAILABLE_COMMANDS) { return; }
         entry = { kind: 'item', command: raw.command, title: this.title(raw.command) };
       } else if (raw.submenu && depth < 4) {
         const sub = this.submenus.get(raw.submenu);

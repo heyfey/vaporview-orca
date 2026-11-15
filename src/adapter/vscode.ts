@@ -529,23 +529,29 @@ export const workspace = namespace('workspace', {
     const change = new EventEmitter<Uri>();
     const create = new EventEmitter<Uri>();
     const del = new EventEmitter<Uri>();
-    let watcher: fs.FSWatcher | undefined;
+    let stop = () => undefined as void;
     const p = pattern as RelativePattern;
+    // vaporview watches one file: RelativePattern(folder, file name).
+    const base = (p.base as Uri)?.fsPath ?? String(p.base ?? '');
+    const file = nodePath.join(base, p.pattern ?? '');
+    let timer: NodeJS.Timeout | undefined;
+    const changed = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => change.fire(Uri.file(file)), 100);
+    };
     try {
-      // vaporview watches one file: RelativePattern(folder uri, file name).
-      const base = (p.base as Uri)?.fsPath ?? String(p.base ?? '');
-      const file = nodePath.join(base, p.pattern ?? '');
-      let timer: NodeJS.Timeout | undefined;
-      watcher = fs.watch(file, () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => change.fire(Uri.file(file)), 100);
-      });
-    } catch (err: any) {
-      host.log(`[adapter] cannot watch a file: ${err?.message ?? err}`);
+      const watcher = fs.watch(file, changed);
+      watcher.on('error', () => undefined);
+      stop = () => watcher.close();
+    } catch {
+      // Some file systems give no change events (for example a WSL folder seen from Windows).
+      // Then the adapter reads the change time of the file one time each second.
+      fs.watchFile(file, { interval: 1000 }, (now, before) => { if (now.mtimeMs !== before.mtimeMs || now.size !== before.size) { changed(); } });
+      stop = () => fs.unwatchFile(file);
     }
     return {
       onDidChange: change.event, onDidCreate: create.event, onDidDelete: del.event,
-      dispose: () => { watcher?.close(); change.dispose(); create.dispose(); del.dispose(); },
+      dispose: () => { stop(); clearTimeout(timer); change.dispose(); create.dispose(); del.dispose(); },
     };
   },
   async save(): Promise<undefined> { unsupported('workspace.save'); return undefined; },

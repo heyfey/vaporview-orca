@@ -87,7 +87,7 @@ check((await req('editor.poll', { docKey: hello.docKey, instance: 'f1' })).stale
 // Menus: the worker selects the items from the vaporview package.json.
 check(variable.inline.some((b) => b.command === 'vaporview.addVariable' && b.icon === 'add'), 'a variable row has the inline "add" button');
 const treeMenu = (await req('menu.tree', { id: variable.id })).items;
-check(treeMenu.some((m) => m.title === 'Add Selected') && !treeMenu.some((m) => m.title?.startsWith('Add All Variables')), `tree menu of a variable (${treeMenu.filter((m) => m.kind === 'item').map((m) => m.title).join(', ')})`);
+check(treeMenu.some((m) => m.title === 'Add Selected') && !treeMenu.some((m) => m.title?.startsWith('Add All Variables')) && !treeMenu.some((m) => m.title === 'Add Variable by Name...'), `tree menu of a variable (${treeMenu.filter((m) => m.kind === 'item').map((m) => m.title).join(', ')})`);
 const scopeMenu = (await req('menu.tree', { id: top.items[0].id })).items;
 check(scopeMenu.some((m) => m.title === 'Add All Variables in Scope (Recursive)'), 'tree menu of a scope has "Add All Variables in Scope"');
 const signalMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'signal', width: 8, type: 'Wire' } })).items;
@@ -107,7 +107,7 @@ check(afterClose.closed === true, 'close marks the session file');
 check((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).closed === true, 'a frame of the closed waveform is told "closed"');
 check((await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext })).closed === true, 'a new frame does not load a closed waveform');
 const again = await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext, reopen: true });
-check(!!again.docKey && again.keybindings.length === 17, 'the person can open it again, and the frame gets the keybindings');
+check(!!again.docKey && again.keybindings.length === 16, 'the person can open it again, and the frame gets the keybindings');
 check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart === true, 'a frame of an unknown document is told to start again');
 fs.rmSync(workspacePath, { recursive: true, force: true });
 process.exit(process.exitCode ?? 0);
