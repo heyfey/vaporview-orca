@@ -51,7 +51,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 |---|---|---|---|---|---|
 | Waveform drawing and ruler | Webview canvas | Same | yes | Orca | Same code |
 | Zoom with the wheel | Ctrl plus wheel | Same | yes | Orca (events) | |
-| Scroll | Wheel, scroll bar | Same | yes | no | |
+| Scroll | Wheel, scroll bar | Same | yes | Orca (events) | The wheel follows the setting "Scrolling Mode", as in vaporview: "Mouse" moves in time, "Touchpad" moves up and down. The default is "Mouse". |
 | Marker | Click | Same | yes | Orca (events) | |
 | Alt marker | Alt plus click | Same | yes | no | |
 | Value at the marker | Column beside the name | Same | yes | Orca | |
@@ -113,14 +113,12 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 |---|---|---|---|---|---|
 | Automatic view state | VS Code webview state | Tweaked | yes | Orca | Session file in `.vaporview/`, written by the worker. The signal list came back after a worker restart. |
 | Save session, load session | Save and open dialogs | Decision | no | | No file dialog. The menu does not show the items. See decision D2. PR-2 |
-| Settings | 33 settings in VS Code | Same | yes | no | 26 settings in the Orca settings page of the plugin. The 7 others are for features that the plugin does not have. A change was not tested. |
-| Change a setting from the viewer | For example scrolling mode | Same | yes | no | |
+| Settings | 33 settings in VS Code | Same | yes | Orca | 26 settings in the Orca settings page of the plugin. The 7 others are for features that the plugin does not have. The plugin does not read the settings of VS Code. |
+| Change a setting from the viewer | For example scrolling mode | Same | yes | Orca | The command "Touchpad" of the scrolling mode changed the Orca setting |
 | Status bar: marker time, delta time, selected signal | 3 items | Same | yes | Orca | Orca status bar items |
 | Messages (information, warning, error) | VS Code notification | Tweaked | yes | Orca | The message shows in the panel. Orca gives a plugin only a desktop notification. |
-| Question before more than 48 signals are added ("Yes", "No") | VS Code notification with buttons | Tweaked | yes | Node | No question. The plugin answers "Yes" (decision of 2026-11-15). Orca has no question dialog for a plugin. PR-7 (deferred) |
-| Question "Restore state from file" (a `<name>.json` beside the waveform file, with no saved state) | "Yes", "No", "Settings" | Tweaked | yes | no | No question. The plugin answers "Yes". |
-| Questions of the remote viewer ("Reconnect", "Connect Anyway" for a token over plain HTTP) | VS Code notification, one of them modal | Deferred | no | | Remote access is deferred. These must not get an automatic answer. |
-| Other questions with buttons | VS Code notification with buttons | Blocked | no | | The plugin shows no question. A question that is not in its list gets no answer, as if the person closed it. vaporview has no other question now. PR-7 (deferred) |
+| Question before more than 48 signals are added ("Yes", "No") | VS Code notification with buttons | Tweaked | yes | Node | No question. The plugin adds the signals. Orca has no question dialog for a plugin. PR-7 (deferred) |
+| Other questions with buttons ("Restore state from file", and two of the remote viewer) | VS Code notification with buttons | Blocked | no | | The text shows as a message, and the question gets no answer. PR-7 (deferred) |
 
 ## Integration
 

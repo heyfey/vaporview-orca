@@ -83,9 +83,8 @@ Rules of the adapter:
 
 - A VS Code API with no Orca equivalent is a no-op that writes one log line (for example terminal
   links). An input box and a quick pick answer as if the person cancelled.
-- A VS Code message shows in the panel. A message with buttons is a question. The plugin shows
-  no question: two known questions get the answer "Yes" (`AUTO_ANSWERS` in the hub), and each
-  other question gets no answer.
+- A VS Code message shows in the panel. A message with buttons is a question, and the person
+  cannot answer it in Orca. For the question before a large add, the plugin adds the signals.
 - Orca workarounds are in the hub, each in one named part: `FrameLink` (message transport),
   the session file, and the file browser.
 - The message format is in one file, [src/common/codec.ts](../src/common/codec.ts). It is the only

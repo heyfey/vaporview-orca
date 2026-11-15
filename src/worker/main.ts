@@ -26,15 +26,8 @@ const SESSION_SUFFIX = '.vaporview.json';
 const WAVEFORM_SUFFIXES = ['.vcd', '.fst', '.ghw'];
 const EDITOR_ID = 'vaporview.waveformViewer';
 const SETTING_PREFIX = 'vaporview.';
-// Questions of vaporview that get a fixed answer, because Orca has no question dialog for a
-// plugin. Only the questions in this list get an answer. Do not add a question that confirms
-// a risk, for example the remote viewer question about a token over plain HTTP.
-const AUTO_ANSWERS: { match: RegExp; answer: string }[] = [
-  // More than 48 signals at one time ("Add Selected", "Add All Variables in Scope").
-  { match: /^You are about to add a large number of signals/, answer: 'Yes' },
-  // A session file `<name>.json` is beside the waveform file and the page has no saved state.
-  { match: /^Restore state from file:/, answer: 'Yes' },
-];
+// vaporview asks "Yes" or "No" before it adds more than 48 signals at one time.
+const ADD_MANY_SIGNALS = /^You are about to add a large number of signals/;
 // The status bar items of the manifest, in the order in which vaporview makes its items.
 const STATUS_IDS = ['vaporview-marker', 'vaporview-delta', 'vaporview-signal'];
 
@@ -148,16 +141,12 @@ export default async function activate(orca: any): Promise<void> {
     log(`[${level}] ${message}`);
     orca.panels.post('panel.message', { level, message });
   };
-  // A question of vaporview (a message with buttons). Orca has no question dialog for a plugin,
-  // and the plugin shows none. A question in AUTO_ANSWERS gets its fixed answer. Each other
-  // question gets no answer, which is what VS Code gives when the person closes the question.
+  // A question of vaporview is a message with buttons. Orca has no question dialog for a plugin,
+  // so the person cannot answer. When vaporview asks before it adds many signals, the plugin
+  // adds them. Each other question shows as a message and gets no answer.
   const ask = async (level: string, message: string, items: string[]): Promise<string | undefined> => {
-    const rule = AUTO_ANSWERS.find((r) => r.match.test(message) && items.includes(r.answer));
-    if (rule) {
-      log(`[${level}] ${message} -> ${rule.answer}`);
-      return rule.answer;
-    }
-    notify(level, `${message} (not available in Orca: this needs an answer from you)`);
+    if (ADD_MANY_SIGNALS.test(message) && items.includes('Yes')) { return 'Yes'; }
+    notify(level, message);
     return undefined;
   };
 
@@ -635,6 +624,9 @@ export default async function activate(orca: any): Promise<void> {
     entry.link.post({ command: 'orca-snapshot', id });
     return result;
   });
+  // Development aid: the settings that the worker read from Orca.
+  orca.panels.handle('debug.settings', () => JSON.parse(JSON.stringify({ settings })));
+
   // Development aid: sends pointer, wheel, or key events to the page of the active waveform.
   orca.panels.handle('debug.input', async (input: any) => {
     const entry = activeEntry();
