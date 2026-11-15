@@ -1,0 +1,19 @@
+{
+  "name": "vaporview-orca",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Port of the vaporview waveform viewer to an Orca plugin",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build:vaporview": "cd vaporview && npm ci --no-audit --no-fund && npm run compile-wasm",
+    "build": "node scripts/build.mjs",
+    "test:headless": "node scripts/build.mjs --headless && node build/headless.mjs",
+    "sync": "bash scripts/sync-windows.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}
