@@ -17,8 +17,11 @@ body { font: 12px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: v
 .vv-row.active .vv-name { font-weight: 600; }
 .vv-name { overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 70%; }
 .vv-dim { color: var(--orca-muted-foreground); overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-.vv-row .vv-icon, .vv-add { visibility: hidden; }
-.vv-row:hover .vv-icon, .vv-node-row:hover .vv-add { visibility: visible; }
+.vv-row .vv-icon, .vv-inline { visibility: hidden; }
+.vv-row:hover .vv-icon, .vv-node-row:hover .vv-inline { visibility: visible; }
+.vv-inline.codicon { font-size: 14px; line-height: 20px; }
+.vv-node-icon { width: 16px; flex: none; font-size: 14px; }
+.vv-node-row { user-select: none; }
 .vv-list { flex: none; max-height: 35vh; overflow: auto; }
 .vv-tree { flex: 1; overflow: auto; font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; }
 .vv-twist { width: 12px; flex: none; color: var(--orca-muted-foreground); }

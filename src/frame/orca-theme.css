@@ -63,3 +63,5 @@
 html, body { height: 100%; margin: 0; background: var(--orca-background); color: var(--orca-foreground); }
 #vaporview-orca-status { position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; padding: 24px; text-align: center; font: 13px system-ui, sans-serif; color: var(--orca-muted-foreground); background: var(--orca-background); }
 #vaporview-orca-status.error { color: var(--orca-destructive); }
+#vaporview-orca-status { flex-direction: column; gap: 12px; }
+#vaporview-orca-status button { font: inherit; color: var(--orca-primary-foreground); background: var(--orca-primary); border: 0; border-radius: 4px; padding: 4px 12px; cursor: pointer; }

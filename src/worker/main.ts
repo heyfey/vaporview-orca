@@ -14,15 +14,20 @@ import { fileURLToPath } from 'node:url';
 import { activate as activateVaporview } from '../../vaporview/src/extension_core/extension';
 import {
   setAdapterHost, registry, createExtensionContext, Uri, WebviewPanel, CancellationTokenSource,
-  TreeItemCollapsibleState, type TreeView,
+  TreeItemCollapsibleState, fireConfigurationChanged, onDidChangeContextKey, type TreeView, type StatusBarItem,
 } from '../adapter/vscode';
 import { encodeMessages } from '../common/codec';
+import { Menus } from './menus';
 
 const VIEW_TYPE = 'vaporview.waveformViewer';
 const TREE_ID = 'waveformViewerNetlistView';
 const SESSION_DIR = '.vaporview';
 const SESSION_SUFFIX = '.vaporview.json';
 const WAVEFORM_SUFFIXES = ['.vcd', '.fst', '.ghw'];
+const EDITOR_ID = 'vaporview.waveformViewer';
+const SETTING_PREFIX = 'vaporview.';
+// The status bar items of the manifest, in the order in which vaporview makes its items.
+const STATUS_IDS = ['vaporview-marker', 'vaporview-delta', 'vaporview-signal'];
 
 const POLL_HOLD_MS = 20_000;       // a poll with no message returns after this time
 const POLL_MIN_SPACING_MS = 150;   // keeps the frame below Orca's limit of 120 messages in 10 s
@@ -134,18 +139,56 @@ export default async function activate(orca: any): Promise<void> {
     orca.panels.post('panel.message', { level, message });
   };
 
+  // Settings. VS Code reads a setting without a wait, so the worker keeps a copy.
+  let settings: Record<string, unknown> = {};
+  try { settings = (await orca.settings?.get?.()) ?? {}; } catch (err: any) { log(`settings not available: ${err?.code ?? err}`); }
+  orca.settings?.onDidChange?.(async () => {
+    const before = settings;
+    try { settings = (await orca.settings.get()) ?? {}; } catch { return; }
+    const changed = Object.keys({ ...before, ...settings }).filter((k) => before[k] !== settings[k]);
+    if (changed.length) { fireConfigurationChanged(changed.map((k) => SETTING_PREFIX + k)); }
+  });
+
+  // Status bar. Orca changes an item with a host call, so fast changes go out together.
+  const statusTimers = new Map<number, NodeJS.Timeout>();
+  const statusBarChanged = (item: StatusBarItem) => {
+    const id = STATUS_IDS[item.index];
+    if (!id || statusTimers.has(item.index)) { return; }
+    statusTimers.set(item.index, setTimeout(() => {
+      statusTimers.delete(item.index);
+      const text = item.text.replace(/\$\([^)]*\)\s*/g, '').trim();
+      orca.host.call('statusBar.update', { id, text, visible: item.visible && text.length > 0 }).catch(() => undefined);
+    }, 150));
+  };
+
   setAdapterHost({
     extensionPath: path.join(here, 'ext'),
     log,
     notify,
     executeHostCommand: (command: string) => { log(`[adapter] command not available in Orca: ${command}`); return undefined; },
-    statusBarChanged: () => undefined,
+    getSetting: (key: string) => (key.startsWith(SETTING_PREFIX) ? settings[key.slice(SETTING_PREFIX.length)] : undefined),
+    setSetting: (key: string, value: unknown) => {
+      if (!key.startsWith(SETTING_PREFIX)) { return; }
+      settings[key.slice(SETTING_PREFIX.length)] = value;
+      orca.settings?.set?.(key.slice(SETTING_PREFIX.length), value)?.catch?.((err: any) => log(`cannot save setting ${key}: ${err?.code ?? err}`));
+    },
+    statusBarChanged,
+    // The worker has no clipboard. A frame writes the text.
+    clipboardWrite: (text: string) => orca.panels.post('clipboard.write', { text }),
   });
   await activateVaporview(createExtensionContext());
   const provider = registry.customEditors.get(VIEW_TYPE)!.provider;
   const tree = registry.treeViews.get(TREE_ID) as TreeView<any>;
   const treeData = tree.options.treeDataProvider;
+  const menus = new Menus(JSON.parse(fs.readFileSync(path.join(here, 'ext', 'package.json'), 'utf8')));
   log(`vaporview core active: ${registry.commands.size} commands`);
+
+  // Context keys that vaporview sets with the `setContext` command. Menus and keys use them.
+  const contextKeys = () => Object.fromEntries(registry.contextKeys);
+  onDidChangeContextKey.listeners.add(() => {
+    for (const e of entries.values()) { if (e.link.instance) { e.link.post({ command: 'orca-context', keys: contextKeys() }); } }
+    orca.panels.post('tree.context', {});
+  });
 
   // ------------------------------------------------------------------------------------------
   // Workspaces
@@ -195,6 +238,7 @@ export default async function activate(orca: any): Promise<void> {
   const panelChanged = () => orca.panels.post('panel.changed', listFor(currentWorkspace));
 
   /** Makes one document the active one of the vaporview core, so that the tree shows it. */
+  let treeOwner: string | undefined;
   function setActive(entry: Entry | undefined): void {
     for (const e of entries.values()) {
       if (e !== entry) { e.panel.setViewState(false, false); }
@@ -203,11 +247,14 @@ export default async function activate(orca: any): Promise<void> {
       activeByWorkspace.set(entry.workspace.key, entry.key);
       entry.panel.setViewState(true, true);
     }
-    resetTree();
+    // The tree keeps its open nodes while the same waveform stays active.
+    if (treeOwner !== entry?.key) { treeOwner = entry?.key; resetTree(); }
     panelChanged();
   }
 
   const loading = new Map<string, Promise<Entry>>();
+  /** Waveforms that the person closed in the panel. An open tab of one must not load it again. */
+  const closedKeys = new Set<string>();
 
   /** Loads a waveform file one time. A second call for the same file gets the same document. */
   function loadWaveform(ws: WorkspaceInfo, waveformPath: string): Promise<Entry> {
@@ -230,12 +277,23 @@ export default async function activate(orca: any): Promise<void> {
     entry.panel = new WebviewPanel(VIEW_TYPE, (m) => link.post(m), () => void showTab(entry));
     entry.document = await provider.openCustomDocument(Uri.file(waveformPath), {}, token);
     await provider.resolveCustomEditor(entry.document, entry.panel, token);
+    // The session file holds the view state of the last time. The webview restores it at its start.
+    const file = sessionFileFor(entry);
+    if (file) {
+      try {
+        const { fileName: _f, closed: _c, ...state } = JSON.parse(fs.readFileSync(file, 'utf8'));
+        if (Object.keys(state).length) { entry.state = state; }
+      } catch { /* a new file */ }
+    }
     entries.set(key, entry);
     return entry;
   }
 
   async function closeWaveform(entry: Entry): Promise<void> {
     entries.delete(entry.key);
+    closedKeys.add(entry.key);
+    clearTimeout(entry.saveTimer);
+    writeSession(entry, true);
     if (activeByWorkspace.get(entry.workspace.key) === entry.key) { activeByWorkspace.delete(entry.workspace.key); }
     entry.link.post({ command: 'orca-closed' });
     try { entry.panel.dispose(); } catch (err) { log(`panel dispose failed: ${err}`); }
@@ -271,18 +329,20 @@ export default async function activate(orca: any): Promise<void> {
     return undefined;
   }
 
+  function writeSession(entry: Entry, closed = false): void {
+    const file = sessionFileFor(entry);
+    if (!file) { return; }
+    const state = (entry.state && typeof entry.state === 'object') ? entry.state : {};
+    try {
+      fs.writeFileSync(file, JSON.stringify({ ...state, fileName: entry.waveformPath, ...(closed ? { closed: true } : {}) }, null, 2));
+    } catch (err: any) {
+      log(`cannot write the session file: ${err?.message ?? err}`);
+    }
+  }
+
   function saveSessionSoon(entry: Entry): void {
     clearTimeout(entry.saveTimer);
-    entry.saveTimer = setTimeout(() => {
-      const file = sessionFileFor(entry);
-      if (!file || !entries.has(entry.key)) { return; }
-      const state = (entry.state && typeof entry.state === 'object') ? entry.state : {};
-      try {
-        fs.writeFileSync(file, JSON.stringify({ ...state, fileName: entry.waveformPath }, null, 2));
-      } catch (err: any) {
-        log(`cannot write the session file: ${err?.message ?? err}`);
-      }
-    }, 800);
+    entry.saveTimer = setTimeout(() => { if (entries.has(entry.key)) { writeSession(entry); } }, 800);
   }
 
   async function showTab(entry: Entry): Promise<void> {
@@ -309,7 +369,7 @@ export default async function activate(orca: any): Promise<void> {
   const fail = (message: string) => Object.assign(new Error(message), { code: 'action_failed' });
   const entryOf = (input: any): Entry => {
     const entry = entries.get(input?.docKey);
-    if (!entry) { throw fail('This waveform is closed.'); }
+    if (!entry) { throw Object.assign(new Error('This waveform is closed.'), { code: 'conflict' }); }
     return entry;
   };
 
@@ -317,23 +377,28 @@ export default async function activate(orca: any): Promise<void> {
     const ws = await resolveWorkspace(input.workspace);
     if (!ws) { throw fail('No workspace has the focus.'); }
     if (typeof input.fileName !== 'string' || !input.fileName) { throw fail('The session file names no waveform file.'); }
-    const known = entries.has(entryKey(ws, input.fileName));
+    const key = entryKey(ws, input.fileName);
+    const known = entries.has(key);
+    // A waveform that the person closed stays closed until the person opens it again.
+    if (!known && !input.reopen && (closedKeys.has(key) || input.session?.closed === true)) { return { closed: true }; }
+    closedKeys.delete(key);
     const entry = await loadWaveform(ws, input.fileName);
-    // After an Orca restart the worker has no state. The session file then gives it.
-    if (!known && input.session && typeof input.session === 'object') {
-      const { fileName: _f, ...state } = input.session;
-      if (Object.keys(state).length) { entry.state = state; }
-    }
+    if (!known) { writeSession(entry); }
     log(`frame ${input.instance} shows ${path.basename(entry.waveformPath)} (${known ? 'open document' : 'new document'})`);
     entry.link.connect(input.instance);
     currentWorkspace = ws;
     setActive(entry);
-    return { docKey: entry.key, state: entry.state ?? null, uri: entry.document.uri.toString() };
+    return {
+      docKey: entry.key, state: entry.state ?? null, uri: entry.document.uri.toString(),
+      keybindings: menus.keybindings, contextKeys: contextKeys(), editorId: EDITOR_ID,
+      extname: path.extname(entry.waveformPath).toLowerCase(),
+    };
   });
 
   orca.panels.handle('editor.poll', (input: any) => {
     const entry = entries.get(input?.docKey);
-    if (!entry) { return { messages: '[]', closed: true }; }
+    // An unknown document that nobody closed: the worker started again. The frame starts again too.
+    if (!entry) { return closedKeys.has(input?.docKey) ? { messages: '[]', closed: true } : { messages: '[]', restart: true }; }
     return entry.link.poll(input.instance);
   });
 
@@ -363,7 +428,14 @@ export default async function activate(orca: any): Promise<void> {
     return id;
   }
   treeData.onDidChangeTreeData?.(() => resetTree());
-  tree.revealEmitter.event(({ element }) => orca.panels.post('tree.reveal', { id: idOf(element) }));
+  // `reveal` shows an element in the panel. The panel needs the ids from the root to the element.
+  tree.revealEmitter.event(async ({ element, options }) => {
+    const chain: number[] = [];
+    for (let e = element; e; e = await treeData.getParent?.(e)) { chain.unshift(idOf(e)); if (chain.length > 64) { break; } }
+    orca.panels.post('tree.reveal', { path: chain, select: options?.select !== false });
+  });
+
+  const treeContext = (item: any) => ({ ...contextKeys(), view: TREE_ID, viewItem: item.contextValue ?? '' });
 
   async function describe(element: any) {
     const item = await treeData.getTreeItem(element);
@@ -375,7 +447,11 @@ export default async function activate(orca: any): Promise<void> {
       expandable: item.collapsibleState !== TreeItemCollapsibleState.None,
       kind: item.contextValue ?? '',
       icon: item.iconPath?.id ?? '',
+      color: item.iconPath?.color?.id ?? '',
       tooltip: typeof item.tooltip === 'string' ? item.tooltip : (item.tooltip?.value ?? ''),
+      // The buttons that VS Code shows on the row (menu group "inline").
+      inline: menus.resolve('view/item/context', treeContext(item), 'only')
+        .flatMap((m) => (m.kind === 'item' ? [{ command: m.command, title: m.title, icon: menus.icon(m.command) }] : [])),
     };
   }
 
@@ -389,26 +465,67 @@ export default async function activate(orca: any): Promise<void> {
     const parent = input?.id ? treeItems.get(input.id) : undefined;
     if (input?.id && !parent) { return { items: [], stale: true }; }
     const children = (await treeData.getChildren(parent)) ?? [];
-    return { items: await Promise.all(children.map(describe)) };
+    return { items: await Promise.all(children.map(describe)), title: menus.resolve('view/title', { ...contextKeys(), view: TREE_ID }, 'exclude').length };
   });
 
   orca.panels.handle('tree.action', async (input: any) => {
     const entry = activeEntry();
     const element = treeItems.get(input?.id);
-    if (!entry || !element) { return { stale: true }; }
-    if (input.action === 'expand') { tree.expandEmitter.fire({ element }); return { ok: true }; }
-    if (input.action === 'collapse') { tree.collapseEmitter.fire({ element }); return { ok: true }; }
+    if (!entry) { return { stale: true }; }
     if (input.action === 'select') {
-      tree.selection = [element];
-      tree.selectionEmitter.fire({ selection: [element] });
+      const selection = (input.ids ?? []).map((id: number) => treeItems.get(id)).filter(Boolean);
+      tree.selection = selection;
+      tree.selectionEmitter.fire({ selection });
       return { ok: true };
     }
-    if (input.action === 'add') {
-      await ensureFrame(entry);
-      await registry.commands.get('vaporview.addVariable')?.(element);
+    if (!element) { return { stale: true }; }
+    if (input.action === 'expand') { tree.expandEmitter.fire({ element }); return { ok: true }; }
+    if (input.action === 'collapse') { tree.collapseEmitter.fire({ element }); return { ok: true }; }
+    if (input.action === 'click') {
+      // VS Code runs the command of a tree item at a click. vaporview adds the variable at the second click.
+      const item = await treeData.getTreeItem(element);
+      if (item.command?.command) {
+        await ensureFrame(entry);
+        await registry.commands.get(item.command.command)?.(...(item.command.arguments ?? []));
+      }
       return { ok: true };
     }
     return { ok: false };
+  });
+
+  // ------------------------------------------------------------------------------------------
+  // Menus. The frames draw them. This part selects the items and runs the commands.
+  // ------------------------------------------------------------------------------------------
+
+  orca.panels.handle('menu.webview', (input: any) => {
+    const context = { ...contextKeys(), ...(input?.context ?? {}), webviewId: EDITOR_ID, activeCustomEditorId: EDITOR_ID };
+    return { items: menus.resolve('webview/context', context) };
+  });
+
+  orca.panels.handle('menu.tree', async (input: any) => {
+    const element = treeItems.get(input?.id);
+    if (!element) { return { items: [] }; }
+    return { items: menus.resolve('view/item/context', treeContext(await treeData.getTreeItem(element))) };
+  });
+
+  orca.panels.handle('menu.run', async (input: any) => {
+    const command = registry.commands.get(input?.command);
+    if (!command) { throw fail(`Command not found: ${input?.command}`); }
+    if (input.source === 'tree') {
+      const entry = activeEntry();
+      const element = treeItems.get(input.id);
+      if (!entry || !element) { return { stale: true }; }
+      await ensureFrame(entry);
+      // VS Code gives a tree command the item and, with a multiple selection, all selected items.
+      const selection = tree.selection.includes(element) ? tree.selection : [element];
+      await command(element, selection);
+    } else if (input.source === 'webview') {
+      // VS Code gives a webview menu command the context of the element under the pointer.
+      await command(input.context ?? {});
+    } else {
+      await command();
+    }
+    return { ok: true };
   });
 
   // ------------------------------------------------------------------------------------------
@@ -427,7 +544,9 @@ export default async function activate(orca: any): Promise<void> {
 
   orca.panels.handle('panel.open', async (input: any) => {
     if (!currentWorkspace) { throw fail('Select a workspace first.'); }
+    closedKeys.delete(entryKey(currentWorkspace, input.path));
     const entry = await loadWaveform(currentWorkspace, input.path);
+    writeSession(entry);
     setActive(entry);
     await showTab(entry);
     return { docKey: entry.key };
@@ -479,6 +598,13 @@ export default async function activate(orca: any): Promise<void> {
     });
     entry.link.post({ command: 'orca-snapshot', id });
     return result;
+  });
+  // Development aid: sends pointer, wheel, or key events to the page of the active waveform.
+  orca.panels.handle('debug.input', async (input: any) => {
+    const entry = activeEntry();
+    if (!entry || !(await entry.link.isLive())) { return { error: 'no live frame' }; }
+    entry.link.post({ command: 'orca-input', events: input?.events ?? [] });
+    return { ok: true };
   });
   orca.panels.handle('debug.part', (input: any) => {
     const shot = snapshots.get(input.id);

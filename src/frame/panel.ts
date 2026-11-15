@@ -1,11 +1,23 @@
 // The sidebar panel: the list of open waveforms of the workspace, and the netlist tree of the
 // selected waveform. The data comes from the worker.
 
+import { showMenu, writeClipboard, type MenuEntry } from './menu';
+
 declare const orca: any;
 
 type Waveform = { key: string; name: string; folder: string };
 type ListState = { workspace: string | null; waveforms: Waveform[]; active: string | null };
-type TreeNode = { id: number; label: string; description: string; expandable: boolean; kind: string; icon: string; tooltip: string };
+type InlineButton = { command: string; title: string; icon: string };
+type TreeNode = {
+  id: number; label: string; description: string; expandable: boolean; kind: string;
+  icon: string; color: string; tooltip: string; inline: InlineButton[];
+};
+
+// VS Code theme colors that the vaporview tree icons use. Orca has no such colors.
+const ICON_COLORS: Record<string, string> = {
+  'charts.purple': '#b180d7', 'charts.green': '#89d185', 'charts.orange': '#d18616',
+  'charts.yellow': '#cca700', 'charts.blue': '#3794ff', 'charts.red': '#f14c4c',
+};
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] => {
   const node = document.createElement(tag);
@@ -39,7 +51,6 @@ root.append(header, messageBar, browser, list, treeTitle, tree);
 document.body.append(root);
 
 let state: ListState = { workspace: null, waveforms: [], active: null };
-let selectedRow: HTMLElement | undefined;
 
 function showMessage(text: string, level = 'error'): void {
   messageBar.textContent = text;
@@ -69,14 +80,12 @@ function renderList(): void {
   }
   for (const w of state.waveforms) {
     const row = el('div', 'vv-row' + (w.key === state.active ? ' active' : ''));
-    row.title = `${w.folder}`;
-    const name = el('span', 'vv-name', w.name);
-    const folder = el('span', 'vv-dim', w.folder);
+    row.title = w.folder;
     const close = el('button', 'vv-icon', '×');
     close.title = 'Close Waveform';
     close.addEventListener('click', (e) => { e.stopPropagation(); void run(() => request('panel.close', { docKey: w.key })); });
     row.addEventListener('click', () => void run(() => request('panel.select', { docKey: w.key })));
-    row.append(name, folder, close);
+    row.append(el('span', 'vv-name', w.name), el('span', 'vv-dim', w.folder), close);
     list.append(row);
   }
   const hasTree = !!state.active;
@@ -106,6 +115,7 @@ async function browse(dir?: string): Promise<void> {
   browser.append(bar);
   if (r.error) { browser.append(el('div', 'vv-empty', r.error)); }
   const entries = el('div', 'vv-entries');
+  const join = (name: string) => r.dir + (r.dir.endsWith(r.sep) ? '' : r.sep) + name;
   if (r.parent) {
     const up = el('div', 'vv-entry folder', '..');
     up.addEventListener('click', () => void run(() => browse(r.parent)));
@@ -113,12 +123,12 @@ async function browse(dir?: string): Promise<void> {
   }
   for (const name of r.folders) {
     const row = el('div', 'vv-entry folder', name);
-    row.addEventListener('click', () => void run(() => browse(r.dir + (r.dir.endsWith(r.sep) ? '' : r.sep) + name)));
+    row.addEventListener('click', () => void run(() => browse(join(name))));
     entries.append(row);
   }
   for (const name of r.files) {
     const row = el('div', 'vv-entry file', name);
-    row.addEventListener('click', () => void run(() => openWaveform(r.dir + (r.dir.endsWith(r.sep) ? '' : r.sep) + name)));
+    row.addEventListener('click', () => void run(() => openWaveform(join(name))));
     entries.append(row);
   }
   if (!r.error && r.folders.length === 0 && r.files.length === 0) { entries.append(el('div', 'vv-empty', 'No folder and no waveform file here.')); }
@@ -140,8 +150,22 @@ openButton.addEventListener('click', () => {
 });
 
 // --------------------------------------------------------------------------------------------
-// Netlist tree, with children loaded when a node opens
+// Netlist tree. The children of a node load when the node opens.
 // --------------------------------------------------------------------------------------------
+
+type NodeView = { node: TreeNode; row: HTMLElement; open: () => Promise<void> };
+let views = new Map<number, NodeView>();
+let selected = new Set<number>();
+
+function setSelection(ids: number[]): void {
+  for (const id of selected) { views.get(id)?.row.classList.remove('selected'); }
+  selected = new Set(ids);
+  for (const id of selected) { views.get(id)?.row.classList.add('selected'); }
+  void request('tree.action', { action: 'select', ids });
+}
+
+const runTreeCommand = (id: number, command: string) =>
+  run(() => request('menu.run', { source: 'tree', id, command }, 60_000));
 
 async function loadChildren(container: HTMLElement, id?: number, depth = 0): Promise<void> {
   const r = await request('tree.children', { id });
@@ -154,44 +178,72 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   const row = el('div', 'vv-node-row');
   row.style.paddingLeft = `${4 + depth * 12}px`;
   row.title = node.tooltip || node.label;
-  row.dataset.id = String(node.id);
   const twist = el('span', 'vv-twist', node.expandable ? '▸' : '');
-  const label = el('span', 'vv-name', node.label);
-  const description = el('span', 'vv-dim', node.description);
-  row.append(twist, label, description);
+  const icon = el('span', node.icon ? `vv-node-icon codicon codicon-${node.icon}` : 'vv-node-icon');
+  if (node.color) { icon.style.color = ICON_COLORS[node.color] ?? ''; }
+  row.append(twist, icon, el('span', 'vv-name', node.label), el('span', 'vv-dim', node.description));
+  for (const b of node.inline) {
+    const button = el('button', 'vv-icon vv-inline' + (b.icon ? ` codicon codicon-${b.icon}` : ''), b.icon ? '' : b.title.slice(0, 1));
+    button.title = b.title;
+    button.addEventListener('click', (e) => { e.stopPropagation(); void runTreeCommand(node.id, b.command); });
+    row.append(button);
+  }
   const children = el('div', 'vv-children');
   children.style.display = 'none';
-  let open = false;
-  let loaded = false;
+  let isOpen = false;
+  let loaded: Promise<void> | undefined;
 
-  const toggle = async (): Promise<void> => {
-    open = !open;
-    twist.textContent = open ? '▾' : '▸';
-    children.style.display = open ? '' : 'none';
-    void request('tree.action', { id: node.id, action: open ? 'expand' : 'collapse' });
-    if (open && !loaded) { loaded = true; await loadChildren(children, node.id, depth + 1); }
+  const setOpen = async (next: boolean): Promise<void> => {
+    if (!node.expandable || isOpen === next) { return loaded; }
+    isOpen = next;
+    twist.textContent = isOpen ? '▾' : '▸';
+    children.style.display = isOpen ? '' : 'none';
+    void request('tree.action', { id: node.id, action: isOpen ? 'expand' : 'collapse' });
+    if (isOpen && !loaded) { loaded = loadChildren(children, node.id, depth + 1); }
+    return loaded;
   };
 
-  if (node.expandable) {
-    row.addEventListener('click', () => void run(toggle));
-  } else {
-    const add = el('button', 'vv-icon vv-add', '+');
-    add.title = 'Add to Waveform Viewer';
-    add.addEventListener('click', (e) => { e.stopPropagation(); void run(() => request('tree.action', { id: node.id, action: 'add' }, 60_000)); });
-    row.append(add);
-    row.addEventListener('dblclick', () => void run(() => request('tree.action', { id: node.id, action: 'add' }, 60_000)));
-  }
-  row.addEventListener('click', () => {
-    selectedRow?.classList.remove('selected');
-    selectedRow = row;
-    row.classList.add('selected');
-    void request('tree.action', { id: node.id, action: 'select' });
+  row.addEventListener('click', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      const next = new Set(selected);
+      if (next.has(node.id)) { next.delete(node.id); } else { next.add(node.id); }
+      setSelection([...next]);
+      return;
+    }
+    setSelection([node.id]);
+    if (node.expandable) { void run(() => setOpen(!isOpen)); }
+    // VS Code runs the command of the tree item at a click. vaporview adds a variable at the second click.
+    else { void run(() => request('tree.action', { id: node.id, action: 'click' }, 60_000)); }
   });
+  row.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (!selected.has(node.id)) { setSelection([node.id]); }
+    const x = e.clientX;
+    const y = e.clientY;
+    void run(async () => {
+      const r = await request('menu.tree', { id: node.id });
+      showMenu(x, y, r.items as MenuEntry[], (command) => void runTreeCommand(node.id, command));
+    });
+  });
+  views.set(node.id, { node, row, open: () => setOpen(true) as Promise<void> });
   wrap.append(row, children);
   return wrap;
 }
 
-const reloadTree = (): void => { if (state.active) { void run(() => loadChildren(tree)); } else { tree.replaceChildren(); } };
+function reloadTree(): void {
+  views = new Map();
+  selected = new Set();
+  if (state.active) { void run(() => loadChildren(tree)); } else { tree.replaceChildren(); }
+}
+
+/** Shows an element: opens its parents from the root, then selects it. */
+async function reveal(path: number[], select: boolean): Promise<void> {
+  for (const id of path.slice(0, -1)) { await views.get(id)?.open(); }
+  const target = views.get(path[path.length - 1]);
+  if (!target) { return; }
+  target.row.scrollIntoView({ block: 'nearest' });
+  if (select) { setSelection([target.node.id]); }
+}
 
 // --------------------------------------------------------------------------------------------
 // Start
@@ -206,7 +258,9 @@ async function refresh(context?: unknown): Promise<void> {
 
 orca.plugin.on('panel.changed', (next: ListState) => { state = next; renderList(); });
 orca.plugin.on('tree.changed', () => reloadTree());
+orca.plugin.on('tree.reveal', (p: { path: number[]; select: boolean }) => void run(() => reveal(p.path ?? [], p.select)));
 orca.plugin.on('panel.message', (m: { level: string; message: string }) => showMessage(m.message, m.level));
+orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });
 orca.on('workspace.changed', (p: { context: unknown }) => void run(() => refresh(p?.context ?? null)));
 renderList();
 void run(() => refresh());

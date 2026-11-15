@@ -67,7 +67,7 @@ const children = await req('tree.children', { id: top.items[0].id });
 const variable = children.items.find((i) => !i.expandable);
 check(!!variable, `scope has a variable (${variable?.label})`);
 const pending = poll();          // the live frame has a poll open
-const add = req('tree.action', { id: variable.id, action: 'add' });
+const add = req('menu.run', { source: 'tree', id: variable.id, command: 'vaporview.addVariable' });
 messages = await pending;        // answer of the live probe
 if (!messages.length) { messages = await poll(); }
 await add;
@@ -84,8 +84,30 @@ const hello2 = await req('editor.hello', { instance: 'f2', fileName: session.fil
 check(hello2.docKey === hello.docKey && hello2.state?.zoomRatio === 1, 'a new frame gets the same document and the saved state');
 check((await req('editor.poll', { docKey: hello.docKey, instance: 'f1' })).stale === true, 'the old frame is told that it is stale');
 
+// Menus: the worker selects the items from the vaporview package.json.
+check(variable.inline.some((b) => b.command === 'vaporview.addVariable' && b.icon === 'add'), 'a variable row has the inline "add" button');
+const treeMenu = (await req('menu.tree', { id: variable.id })).items;
+check(treeMenu.some((m) => m.title === 'Add Selected') && !treeMenu.some((m) => m.title?.startsWith('Add All Variables')), `tree menu of a variable (${treeMenu.filter((m) => m.kind === 'item').map((m) => m.title).join(', ')})`);
+const scopeMenu = (await req('menu.tree', { id: top.items[0].id })).items;
+check(scopeMenu.some((m) => m.title === 'Add All Variables in Scope (Recursive)'), 'tree menu of a scope has "Add All Variables in Scope"');
+const signalMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'signal', width: 8, type: 'Wire' } })).items;
+const format = signalMenu.find((m) => m.kind === 'submenu' && m.label === 'Format Values');
+check(!!format && format.items.some((m) => m.title === 'Hexadecimal') && signalMenu.some((m) => m.title === 'Remove Variable'), `viewer menu of a signal (${signalMenu.filter((m) => m.kind !== 'separator').map((m) => m.title ?? m.label + ' >').join(', ')})`);
+const bitMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'signal', width: 1 } })).items;
+check(!bitMenu.some((m) => m.label === 'Format Values') && !bitMenu.some((m) => m.title === 'New Signal From Bit Range...'), 'viewer menu of a 1-bit signal has no "Format Values"');
+const rulerMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'ruler', rulerLines: true } })).items;
+check(rulerMenu.some((m) => m.title === 'Hide Ruler Lines') && !rulerMenu.some((m) => m.title === 'Show Ruler Lines'), 'viewer menu of the ruler follows the state');
+
 await req('panel.close', { docKey: hello.docKey });
 state = await req('panel.state', { workspace: context });
 check(state.waveforms.length === 0, 'close removes the waveform');
+// A closed waveform stays closed for a tab that is open, until the person opens it again.
+const afterClose = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+check(afterClose.closed === true, 'close marks the session file');
+check((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).closed === true, 'a frame of the closed waveform is told "closed"');
+check((await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext })).closed === true, 'a new frame does not load a closed waveform');
+const again = await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext, reopen: true });
+check(!!again.docKey && again.keybindings.length === 17, 'the person can open it again, and the frame gets the keybindings');
+check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart === true, 'a frame of an unknown document is told to start again');
 fs.rmSync(workspacePath, { recursive: true, force: true });
 process.exit(process.exitCode ?? 0);

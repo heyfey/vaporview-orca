@@ -85,7 +85,33 @@ copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
 copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf'), path.join(ext, 'codicons', 'codicon.ttf'));
 copy(path.join(root, 'src', 'frame', 'orca-theme.css'), path.join(out, 'orca-theme.css'));
 copy(path.join(root, 'src', 'frame', 'panel.css'), path.join(out, 'panel.css'));
-copy(path.join(root, 'orca-plugin.json'), path.join(out, 'orca-plugin.json'));
+// The manifest. The settings come from the vaporview package.json, so the two stay the same.
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'orca-plugin.json'), 'utf8'));
+const vvPackage = JSON.parse(fs.readFileSync(path.join(vv, 'package.json'), 'utf8'));
+// Settings of features that the plugin does not have in this phase.
+const skipSetting = /^(wcp\.|fsdb|enableInstancePathTerminalLinks|promptLoadSettings|fstMaxStaticLoadSize)/;
+const words = (key) => key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+const plain = (text) => String(text ?? '').replace(/`/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim();
+const settings = [];
+const configuration = vvPackage.contributes.configuration;
+for (const group of Array.isArray(configuration) ? configuration : [configuration]) {
+  for (const [fullKey, def] of Object.entries(group.properties ?? {})) {
+    const key = fullKey.replace(/^vaporview\./, '');
+    if (skipSetting.test(key) || !['string', 'number', 'integer', 'boolean'].includes(def.type)) { continue; }
+    const setting = { key, title: words(key), type: def.type };
+    const description = plain(def.markdownDescription ?? def.description);
+    if (description) { setting.description = description.slice(0, 400); }
+    let value = def.default;
+    if (def.type === 'boolean' && typeof value === 'string') { value = value === 'true'; }
+    if (value !== undefined && value !== null) { setting.default = value; }
+    if (Array.isArray(def.enum)) { setting.enum = def.enum; }
+    if (typeof def.minimum === 'number') { setting.minimum = def.minimum; }
+    if (typeof def.maximum === 'number') { setting.maximum = def.maximum; }
+    settings.push(setting);
+  }
+}
+manifest.contributes.settings = settings;
+fs.writeFileSync(path.join(out, 'orca-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');
 copy(path.join(root, 'LICENSE'), path.join(out, 'LICENSE'));
 
 // The editor page is the vaporview webview page. Orca puts it after its own <head>, so the
@@ -103,7 +129,7 @@ fs.writeFileSync(path.join(out, 'editor.html'), [
   '</body>',
   '',
 ].join('\n'));
-fs.writeFileSync(path.join(out, 'panel.html'), '<link rel="stylesheet" href="panel.css">\n<body>\n<script src="panel.js"></script>\n</body>\n');
+fs.writeFileSync(path.join(out, 'panel.html'), '<link rel="stylesheet" href="ext/codicons/codicon.css">\n<link rel="stylesheet" href="panel.css">\n<body>\n<script src="panel.js"></script>\n</body>\n');
 
 const size = (f) => (fs.statSync(path.join(out, f)).size / 1024).toFixed(0) + ' KiB';
 console.log(`built build/plugin: worker.js ${size('worker.js')}, ext/dist/webview.js ${size('ext/dist/webview.js')}, editor.js ${size('editor.js')}, panel.js ${size('panel.js')}`);

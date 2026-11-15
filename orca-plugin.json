@@ -4,24 +4,62 @@
   "name": "Vaporview",
   "version": "0.1.0",
   "description": "Waveform viewer for VCD, FST, and GHW files. A port of the VS Code extension vaporview.",
-  "engines": { "orca": ">=1.4.248" },
+  "engines": {
+    "orca": ">=1.4.248"
+  },
   "execution": "trusted-worker",
   "pluginApi": 1,
   "main": "worker.js",
   "contributes": {
     "panels": [
-      { "id": "waveforms", "title": "Vaporview", "icon": "activity", "entry": "panel.html", "ui": "html" }
+      {
+        "id": "waveforms",
+        "title": "Vaporview",
+        "icon": "activity",
+        "entry": "panel.html",
+        "ui": "html"
+      }
     ],
     "customEditors": [
-      { "id": "waveform", "title": "Vaporview", "extensions": [".vaporview.json"], "entry": "editor.html", "frame": "isolated" }
+      {
+        "id": "waveform",
+        "title": "Vaporview",
+        "extensions": [
+          ".vaporview.json"
+        ],
+        "entry": "editor.html",
+        "frame": "isolated"
+      }
     ],
     "statusBarItems": [
-      { "id": "vaporview", "icon": "activity", "tooltip": "Vaporview" }
+      {
+        "id": "vaporview-marker",
+        "tooltip": "Vaporview: marker time"
+      },
+      {
+        "id": "vaporview-delta",
+        "tooltip": "Vaporview: time between the markers"
+      },
+      {
+        "id": "vaporview-signal",
+        "tooltip": "Vaporview: selected signal"
+      }
     ],
-    "events": [ { "on": "workspace.changed" } ]
+    "events": [
+      {
+        "on": "workspace.changed"
+      }
+    ]
   },
   "capabilities": [
-    { "kind": "workspace:read" },
-    { "kind": "workspace:write" }
+    {
+      "kind": "workspace:read"
+    },
+    {
+      "kind": "workspace:write"
+    },
+    {
+      "kind": "settings:own"
+    }
   ]
 }

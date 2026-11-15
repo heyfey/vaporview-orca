@@ -2,6 +2,8 @@
 // function that VS Code gives, connected to the Orca worker, and then loads the webview.
 
 import { decodeMessages, toJson } from '../common/codec';
+import { evaluateWhen } from '../common/when';
+import { showMenu, closeMenu, writeClipboard } from './menu';
 
 declare const orca: any;
 
@@ -42,23 +44,79 @@ function snapshot(): { summary: object; image: string } {
       labels: text('.waveform-label'),
       values: text('.value-display-item'),
       canvases: canvases.map((c) => [c.id || c.className, c.width, c.height]),
-      bodyChildren: [...document.body.children].map((n) => n.id || n.tagName),
+      menu: [...document.querySelectorAll('.vv-menu')].map((m) => [...m.children].map((n) => (n.className === 'vv-menu-sep' ? '---' : n.firstChild?.textContent ?? ''))),
       errors: pageErrors.slice(-10),
     },
     image: out.toDataURL('image/jpeg', 0.7).split(',')[1] ?? '',
   };
 }
 
-function status(text: string, isError = false): void {
+function status(text: string, isError = false, action?: { label: string; run: () => void }): void {
   let el = document.getElementById('vaporview-orca-status');
   if (!el) {
     el = document.createElement('div');
     el.id = 'vaporview-orca-status';
     document.body.append(el);
   }
-  el.textContent = text;
+  el.replaceChildren(document.createTextNode(text));
+  if (action) {
+    const button = document.createElement('button');
+    button.textContent = action.label;
+    button.addEventListener('click', action.run);
+    el.append(button);
+  }
   el.className = isError ? 'error' : '';
   el.style.display = text ? 'flex' : 'none';
+}
+
+const CLOSED_TEXT = 'This waveform is closed.';
+
+/** The key of a keyboard event in the form that a VS Code keybinding uses, for example `ctrl+0`. */
+function chordOf(e: KeyboardEvent): string {
+  let key = e.key.toLowerCase();
+  if (e.code.startsWith('Numpad')) { key = 'numpad_' + e.code.slice(6).toLowerCase(); }
+  if (['control', 'shift', 'alt', 'meta'].includes(key)) { return ''; }
+  const parts: string[] = [];
+  if (e.ctrlKey) { parts.push('ctrl'); }
+  if (e.shiftKey) { parts.push('shift'); }
+  if (e.altKey) { parts.push('alt'); }
+  if (e.metaKey) { parts.push('cmd'); }
+  parts.push(key);
+  return parts.join('+');
+}
+const normalizeChord = (text: string): string => {
+  const parts = text.toLowerCase().split('+').filter(Boolean);
+  const key = parts.pop() ?? '';
+  const order = ['ctrl', 'shift', 'alt', 'cmd'];
+  return [...parts.map((p) => (p === 'meta' || p === 'win' ? 'cmd' : p)).sort((a, b) => order.indexOf(a) - order.indexOf(b)), key].join('+');
+};
+
+/** Development aid: plays pointer, wheel, and key events on the page. */
+function replayInput(events: any[]): void {
+  for (const ev of events) {
+    const target = (ev.selector ? document.querySelector(ev.selector) : document.elementFromPoint(ev.x ?? 0, ev.y ?? 0)) as HTMLElement | null;
+    if (!target) { pageErrors.push(`input: no element for ${JSON.stringify(ev)}`); continue; }
+    const r = target.getBoundingClientRect();
+    const x = ev.x ?? r.left + r.width / 2;
+    const y = ev.y ?? r.top + r.height / 2;
+    const base = { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, ctrlKey: !!ev.ctrl, shiftKey: !!ev.shift, altKey: !!ev.alt, metaKey: !!ev.meta, view: window };
+    if (ev.type === 'click' || ev.type === 'dblclick') {
+      for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) { target.dispatchEvent(new (t.startsWith('pointer') ? PointerEvent : MouseEvent)(t, { ...base, button: 0 })); }
+      if (ev.type === 'dblclick') { target.dispatchEvent(new MouseEvent('dblclick', { ...base, button: 0 })); }
+    } else if (ev.type === 'contextmenu') {
+      target.dispatchEvent(new MouseEvent('contextmenu', { ...base, button: 2 }));
+    } else if (ev.type === 'wheel') {
+      target.dispatchEvent(new WheelEvent('wheel', { ...base, deltaX: ev.dx ?? 0, deltaY: ev.dy ?? 0 }));
+    } else if (ev.type === 'key') {
+      const init = { bubbles: true, cancelable: true, key: ev.key, code: ev.code ?? '', ctrlKey: !!ev.ctrl, shiftKey: !!ev.shift, altKey: !!ev.alt, metaKey: !!ev.meta };
+      (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', init));
+      (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keyup', init));
+    } else if (ev.type === 'menu') {
+      // Selects an item of the open context menu by its text.
+      const item = [...document.querySelectorAll('.vv-menu-item')].find((n) => n.firstChild?.textContent === ev.text) as HTMLElement | undefined;
+      if (item) { item.dispatchEvent(new MouseEvent(ev.hover ? 'mouseenter' : 'click', { bubbles: !ev.hover, cancelable: true })); } else { pageErrors.push(`input: no menu item "${ev.text}"`); }
+    }
+  }
 }
 
 async function request(name: string, input: unknown, timeoutMs = 30_000): Promise<any> {
@@ -83,9 +141,17 @@ async function main(): Promise<void> {
   }
   const workspace = await orca.host.call('workspace.readContext').catch(() => null);
 
+  const sayHello = (reopen: boolean) =>
+    request('editor.hello', { instance, fileName: session?.fileName, session, workspace, reopen }, 120_000);
   let hello: any;
   try {
-    hello = await request('editor.hello', { instance, fileName: session?.fileName, session, workspace }, 120_000);
+    hello = await sayHello(false);
+    if (hello.closed) {
+      // The person closed this waveform in the panel. It loads again only on request.
+      await new Promise<void>((resolve) => status(CLOSED_TEXT, false, { label: 'Open again', run: () => resolve() }));
+      status('Loading the waveform…');
+      hello = await sayHello(true);
+    }
   } catch (err: any) {
     return status(`Cannot open the waveform: ${err?.message ?? err}`, true);
   }
@@ -119,8 +185,22 @@ async function main(): Promise<void> {
   };
   const schedule = (): void => { if (sendTimer === undefined) { sendTimer = window.setTimeout(flush, SEND_INTERVAL_MS); } };
 
+  // Context keys: the keys of the worker, and the keys that the webview sets with `setContext`.
+  const contextKeys: Record<string, unknown> = { ...(hello.contextKeys ?? {}) };
+  const focusKeys = (): Record<string, unknown> => {
+    const active = document.activeElement as HTMLElement | null;
+    const typing = !!active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+    return { inputFocus: typing, textInputFocus: typing, activeCustomEditorId: hello.editorId, webviewId: hello.editorId, resourceExtname: hello.extname };
+  };
+
   const api = {
-    postMessage(message: unknown): void { outbox.push(message); schedule(); },
+    postMessage(message: any): void {
+      if (message?.command === 'executeCommand' && message.commandName === 'setContext' && Array.isArray(message.args)) {
+        contextKeys[message.args[0]] = message.args[1];
+      }
+      outbox.push(message);
+      schedule();
+    },
     getState(): unknown { return state; },
     setState<T>(next: T): T { state = next; stateChanged = true; schedule(); return next; },
   };
@@ -138,9 +218,13 @@ async function main(): Promise<void> {
         continue;
       }
       if (answer.stale) { closed = true; return; }
-      if (answer.closed) { closed = true; return status('This waveform is closed. Open it again from the Vaporview panel.'); }
+      // The worker started again and does not know this page. A new page gets a new document.
+      if (answer.restart) { closed = true; location.reload(); return; }
+      if (answer.closed) { closed = true; closeMenu(); return status(CLOSED_TEXT, false, { label: 'Open again', run: () => location.reload() }); }
       for (const message of decodeMessages(answer.messages) as any[]) {
-        if (message?.command === 'orca-closed') { closed = true; status('This waveform is closed. Open it again from the Vaporview panel.'); return; }
+        if (message?.command === 'orca-closed') { closed = true; closeMenu(); status(CLOSED_TEXT, false, { label: 'Open again', run: () => location.reload() }); return; }
+        if (message?.command === 'orca-context') { Object.assign(contextKeys, message.keys ?? {}); continue; }
+        if (message?.command === 'orca-input') { replayInput(message.events ?? []); continue; }
         if (message?.command === 'orca-snapshot') {
           const shot = snapshot();
           const parts = Math.max(1, Math.ceil(shot.image.length / 30_000));
@@ -153,6 +237,47 @@ async function main(): Promise<void> {
       }
     }
   };
+
+  // Context menu. VS Code builds it from the `data-vscode-context` values of the element under
+  // the pointer and its parents. The worker selects the items, and this page draws them.
+  window.addEventListener('contextmenu', (e) => {
+    if ((e.target as HTMLElement)?.closest?.('.vv-menu')) { return; }
+    e.preventDefault();
+    const context: Record<string, unknown> = {};
+    const chain: HTMLElement[] = [];
+    for (let n = e.target as HTMLElement | null; n; n = n.parentElement) { chain.unshift(n); }
+    for (const n of chain) {
+      const raw = n.getAttribute?.('data-vscode-context');
+      if (!raw) { continue; }
+      try { Object.assign(context, JSON.parse(raw)); } catch { /* not JSON */ }
+    }
+    delete context.preventDefaultContextMenuItems;
+    const full = { ...contextKeys, ...context, ...focusKeys() };
+    const x = e.clientX;
+    const y = e.clientY;
+    request('menu.webview', { docKey, context: full })
+      .then((r) => showMenu(x, y, r.items ?? [], (command) => {
+        request('menu.run', { docKey, source: 'webview', command, context }).catch((err: any) => console.error(`[vaporview] ${command} failed: ${err?.message ?? err}`));
+      }))
+      .catch((err: any) => console.error(`[vaporview] menu failed: ${err?.message ?? err}`));
+  });
+
+  // Keybindings of vaporview. In VS Code the keybinding service runs them. Here the page does.
+  const isMac = /mac/i.test(navigator.platform);
+  const bindings: { chord: string; command: string; when?: string }[] = (hello.keybindings ?? []).map((k: any) => ({
+    chord: normalizeChord((isMac && k.mac) || k.key), command: k.command, when: k.when,
+  }));
+  window.addEventListener('keydown', (e) => {
+    const chord = chordOf(e);
+    if (!chord) { return; }
+    const context = { ...contextKeys, ...focusKeys() };
+    const hit = bindings.find((b) => b.chord === chord && evaluateWhen(b.when, context));
+    if (!hit) { return; }
+    e.preventDefault();
+    request('menu.run', { docKey, source: 'key', command: hit.command }).catch((err: any) => console.error(`[vaporview] ${hit.command} failed: ${err?.message ?? err}`));
+  });
+
+  orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });
 
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
