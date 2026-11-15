@@ -1,0 +1,3 @@
+[submodule "vaporview"]
+	path = vaporview
+	url = https://github.com/Lramseyer/vaporview.git

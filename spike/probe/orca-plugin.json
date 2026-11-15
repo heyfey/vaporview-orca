@@ -1,0 +1,31 @@
+{
+  "manifestVersion": 2,
+  "id": "vaporview-probe",
+  "name": "Vaporview Probe",
+  "version": "0.1.0",
+  "description": "Test plugin: measures Orca frame, tab and worker behavior for the vaporview port.",
+  "engines": { "orca": ">=1.4.248" },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "src/worker.ts",
+  "contributes": {
+    "panels": [
+      { "id": "probe-panel", "title": "Vaporview Probe", "icon": "activity", "entry": "panel/main.ts", "ui": "html" }
+    ],
+    "customEditors": [
+      { "id": "probe-editor", "title": "Probe", "extensions": [".vvprobe.json"], "entry": "editor/main.ts", "frame": "isolated" }
+    ],
+    "commands": [
+      { "id": "probe.ping", "title": "Vaporview Probe: Ping Active Frame", "when": "workspace" }
+    ],
+    "statusBarItems": [
+      { "id": "probe-status", "text": "probe", "icon": "activity", "command": "probe.ping" }
+    ],
+    "events": [ { "on": "workspace.changed" } ]
+  },
+  "capabilities": [
+    { "kind": "workspace:read" },
+    { "kind": "workspace:write" },
+    { "kind": "storage:own" }
+  ]
+}
