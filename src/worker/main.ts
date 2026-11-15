@@ -8,6 +8,7 @@
 //   - browse:      file selection in the panel (a plugin has no open-file dialog)
 
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { activate as activateVaporview } from '../../vaporview/src/extension_core/extension';
@@ -150,24 +151,31 @@ export default async function activate(orca: any): Promise<void> {
   // Workspaces
   // ------------------------------------------------------------------------------------------
 
-  async function resolveWorkspace(context: WorkspaceContext): Promise<WorkspaceInfo | undefined> {
-    if (!context) { return undefined; }
-    const info: WorkspaceInfo = {
-      key: context.workspaceId ?? `${context.displayName}\n${context.branch}`,
-      id: context.workspaceId,
-      name: context.displayName,
-    };
+  /**
+   * Finds the workspace of a request. Orca gives the workspace id only to the worker (the id
+   * contains a path), so the worker reads the focused workspace itself. A frame can only say
+   * the name and the branch of its workspace, which is the `hint`.
+   */
+  async function resolveWorkspace(hint: WorkspaceContext): Promise<WorkspaceInfo | undefined> {
+    const focused: WorkspaceContext = await orca.host.call('workspace.readContext').catch(() => null);
+    const who = hint ?? focused;
+    if (!who) { return undefined; }
+    let workspaces: any[] = [];
     try {
-      const { workspaces } = await orca.host.call('workspace.list');
-      const found = context.workspaceId
-        ? workspaces.find((w: any) => w.id === context.workspaceId)
-        // Orca before host API 1.7 gives no id. The name and the branch are then the key.
-        : workspaces.find((w: any) => w.name === context.displayName && (w.branch ?? '') === context.branch);
-      if (found) { info.id = found.id; info.path = found.path; }
+      workspaces = (await orca.host.call('workspace.list')).workspaces;
     } catch (err: any) {
       log(`workspace.list failed: ${err?.code ?? err}`);
     }
-    return info;
+    const sameAsFocused = focused && focused.displayName === who.displayName && focused.branch === who.branch;
+    const found = (sameAsFocused && focused.workspaceId ? workspaces.find((w) => w.id === focused.workspaceId) : undefined)
+      // Orca before host API 1.7 gives no id. The name and the branch are then the key.
+      ?? workspaces.find((w) => w.name === who.displayName && (w.branch ?? '') === who.branch);
+    return {
+      key: found?.id ?? `${who.displayName}\n${who.branch}`,
+      id: found?.id,
+      name: who.displayName,
+      path: found?.path,
+    };
   }
 
   // ------------------------------------------------------------------------------------------
@@ -199,12 +207,24 @@ export default async function activate(orca: any): Promise<void> {
     panelChanged();
   }
 
-  async function loadWaveform(ws: WorkspaceInfo, waveformPath: string): Promise<Entry> {
+  const loading = new Map<string, Promise<Entry>>();
+
+  /** Loads a waveform file one time. A second call for the same file gets the same document. */
+  function loadWaveform(ws: WorkspaceInfo, waveformPath: string): Promise<Entry> {
     const key = entryKey(ws, waveformPath);
     const existing = entries.get(key);
-    if (existing) { return existing; }
-    if (!fs.existsSync(waveformPath)) { throw Object.assign(new Error(`File not found: ${waveformPath}`), { code: 'action_failed' }); }
+    if (existing) { return Promise.resolve(existing); }
+    let pending = loading.get(key);
+    if (!pending) {
+      pending = createEntry(key, ws, waveformPath).finally(() => loading.delete(key));
+      loading.set(key, pending);
+    }
+    return pending;
+  }
 
+  async function createEntry(key: string, ws: WorkspaceInfo, waveformPath: string): Promise<Entry> {
+    if (!fs.existsSync(waveformPath)) { throw Object.assign(new Error(`File not found: ${waveformPath}`), { code: 'action_failed' }); }
+    log(`load ${waveformPath} for workspace ${ws.name}`);
     const link = new FrameLink();
     const entry: Entry = { key, workspace: ws, waveformPath, document: undefined, panel: undefined as any, link, state: undefined };
     entry.panel = new WebviewPanel(VIEW_TYPE, (m) => link.post(m), () => void showTab(entry));
@@ -304,6 +324,7 @@ export default async function activate(orca: any): Promise<void> {
       const { fileName: _f, ...state } = input.session;
       if (Object.keys(state).length) { entry.state = state; }
     }
+    log(`frame ${input.instance} shows ${path.basename(entry.waveformPath)} (${known ? 'open document' : 'new document'})`);
     entry.link.connect(input.instance);
     currentWorkspace = ws;
     setActive(entry);
@@ -322,6 +343,7 @@ export default async function activate(orca: any): Promise<void> {
     if ('state' in input) { entry.state = input.state; saveSessionSoon(entry); }
     for (const message of input.messages ?? []) {
       if (message?.command === 'initialized') { entry.link.markStarted(); }
+      if (message?.command === 'ready' || message?.command === 'restoreState') { log(`webview ${input.instance}: ${message.command}`); }
       entry.panel.receiveEmitter.fire(message);
     }
     return { ok: true };
@@ -440,6 +462,36 @@ export default async function activate(orca: any): Promise<void> {
     } catch (err: any) {
       return { dir, parent: path.dirname(dir), sep: path.sep, folders: [], files: [], error: err?.message ?? String(err) };
     }
+  });
+
+  // Development aid: `orca plugin dev request <key> debug.snapshot` asks the frame of the
+  // active waveform what it shows, and writes an image of its canvases to the temp folder.
+  const snapshots = new Map<number, { parts: string[]; summary?: unknown; done: (v: unknown) => void }>();
+  let snapshotId = 0;
+  orca.panels.handle('debug.snapshot', async () => {
+    const entry = activeEntry();
+    if (!entry) { return { error: 'no active waveform' }; }
+    if (!(await entry.link.isLive())) { return { error: 'no live frame' }; }
+    const id = ++snapshotId;
+    const result = new Promise((resolve) => {
+      snapshots.set(id, { parts: [], done: resolve });
+      setTimeout(() => resolve({ error: 'the frame did not answer' }), 15_000);
+    });
+    entry.link.post({ command: 'orca-snapshot', id });
+    return result;
+  });
+  orca.panels.handle('debug.part', (input: any) => {
+    const shot = snapshots.get(input.id);
+    if (!shot) { return { ok: false }; }
+    shot.parts[input.index] = input.data;
+    if (input.summary) { shot.summary = input.summary; }
+    if (shot.parts.filter((p) => p !== undefined).length === input.parts) {
+      const file = path.join(os.tmpdir(), 'vaporview-orca-snapshot.jpg');
+      fs.writeFileSync(file, Buffer.from(shot.parts.join(''), 'base64'));
+      snapshots.delete(input.id);
+      shot.done({ summary: shot.summary, image: file });
+    }
+    return { ok: true };
   });
 
   orca.events?.on?.('workspace.changed', async (payload: any) => {

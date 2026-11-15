@@ -23,6 +23,7 @@ const orca = {
       calls.push({ method, params });
       if (method === 'workspace.list') { return { workspaces: [{ id: 'ws1', kind: 'folder', name: 'test', path: workspacePath, branch: 'main', hostId: 'local' }], truncated: false }; }
       if (method === 'editor.open') { return { opened: true }; }
+      if (method === 'workspace.readContext') { return context; }
       return null;
     },
   },
@@ -50,7 +51,8 @@ const session = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
 check(session.fileName === waveform, 'session file names the waveform file');
 
 // The editor frame starts.
-const hello = await req('editor.hello', { instance: 'f1', fileName: session.fileName, session, workspace: context });
+const frameContext = { displayName: context.displayName, branch: context.branch };   // a frame gets no workspace id
+const hello = await req('editor.hello', { instance: 'f1', fileName: session.fileName, session, workspace: frameContext });
 check(hello.docKey === opened.docKey, 'frame hello finds the open document');
 const poll = async () => JSON.parse((await req('editor.poll', { docKey: hello.docKey, instance: 'f1' })).messages);
 await req('editor.send', { docKey: hello.docKey, instance: 'f1', messages: [{ command: 'ready' }] });
@@ -78,7 +80,7 @@ await sleep(1000);
 check(JSON.parse(fs.readFileSync(sessionFile, 'utf8')).zoomRatio === 1, 'the worker writes the view state to the session file');
 
 // A second frame for the same document (the tab came back).
-const hello2 = await req('editor.hello', { instance: 'f2', fileName: session.fileName, session, workspace: context });
+const hello2 = await req('editor.hello', { instance: 'f2', fileName: session.fileName, session, workspace: frameContext });
 check(hello2.docKey === hello.docKey && hello2.state?.zoomRatio === 1, 'a new frame gets the same document and the saved state');
 check((await req('editor.poll', { docKey: hello.docKey, instance: 'f1' })).stale === true, 'the old frame is told that it is stale');
 

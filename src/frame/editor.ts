@@ -9,6 +9,46 @@ const SEND_INTERVAL_MS = 200;      // one send for each interval keeps the frame
 const SEND_MAX_CHARS = 40_000;     // a frame message must stay below 64 KiB
 const instance = Math.random().toString(36).slice(2, 10);
 
+// Errors of the page, for the snapshot below.
+const pageErrors: string[] = [];
+window.addEventListener('error', (e) => pageErrors.push(`${e.message} (${String(e.filename).split('/').pop()}:${e.lineno})`));
+window.addEventListener('unhandledrejection', (e) => pageErrors.push(`unhandled: ${e.reason?.message ?? e.reason}`));
+
+/** Development aid: what the page shows now, as text and as one image of all canvases. */
+function snapshot(): { summary: object; image: string } {
+  const text = (sel: string) => [...document.querySelectorAll(sel)].map((n) => (n.textContent ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const canvases = [...document.querySelectorAll('canvas')];
+  const out = document.createElement('canvas');
+  out.width = window.innerWidth;
+  out.height = window.innerHeight;
+  const ctx = out.getContext('2d')!;
+  ctx.fillStyle = getComputedStyle(document.body).backgroundColor || '#000';
+  ctx.fillRect(0, 0, out.width, out.height);
+  for (const c of canvases) {
+    const r = c.getBoundingClientRect();
+    if (c.width && c.height && r.width && r.height) { try { ctx.drawImage(c, r.left, r.top, r.width, r.height); } catch { /* skip */ } }
+  }
+  ctx.fillStyle = getComputedStyle(document.body).color || '#fff';
+  ctx.font = '12px sans-serif';
+  for (const n of document.querySelectorAll('.waveform-label, .value-display-item, #ruler text, .ruler-text')) {
+    const r = n.getBoundingClientRect();
+    if (r.width && r.height) { ctx.fillText((n.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 60), r.left + 2, r.top + r.height / 2 + 4); }
+  }
+  return {
+    summary: {
+      instance,
+      size: [window.innerWidth, window.innerHeight],
+      status: document.getElementById('vaporview-orca-status')?.textContent ?? '',
+      labels: text('.waveform-label'),
+      values: text('.value-display-item'),
+      canvases: canvases.map((c) => [c.id || c.className, c.width, c.height]),
+      bodyChildren: [...document.body.children].map((n) => n.id || n.tagName),
+      errors: pageErrors.slice(-10),
+    },
+    image: out.toDataURL('image/jpeg', 0.7).split(',')[1] ?? '',
+  };
+}
+
 function status(text: string, isError = false): void {
   let el = document.getElementById('vaporview-orca-status');
   if (!el) {
@@ -101,6 +141,14 @@ async function main(): Promise<void> {
       if (answer.closed) { closed = true; return status('This waveform is closed. Open it again from the Vaporview panel.'); }
       for (const message of decodeMessages(answer.messages) as any[]) {
         if (message?.command === 'orca-closed') { closed = true; status('This waveform is closed. Open it again from the Vaporview panel.'); return; }
+        if (message?.command === 'orca-snapshot') {
+          const shot = snapshot();
+          const parts = Math.max(1, Math.ceil(shot.image.length / 30_000));
+          for (let i = 0; i < parts; i++) {
+            await request('debug.part', { id: message.id, index: i, parts, summary: i === 0 ? shot.summary : undefined, data: shot.image.slice(i * 30_000, (i + 1) * 30_000) });
+          }
+          continue;
+        }
         window.dispatchEvent(new MessageEvent('message', { data: message }));
       }
     }
