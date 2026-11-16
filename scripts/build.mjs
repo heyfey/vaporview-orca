@@ -87,6 +87,8 @@ copy(path.join(root, 'src', 'frame', 'orca-theme.css'), path.join(out, 'orca-the
 copy(path.join(root, 'src', 'frame', 'panel.css'), path.join(out, 'panel.css'));
 // Geist is the interface font of Orca. A plugin page cannot load it from Orca.
 copy(path.join(root, 'assets', 'fonts'), path.join(out, 'fonts'));
+// The cover and the screenshot of the plugin page. The manifest names them.
+copy(path.join(root, 'docs', 'images', 'overview.png'), path.join(out, 'images', 'overview.png'));
 // The manifest. The settings come from the vaporview package.json, so the two stay the same.
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'orca-plugin.json'), 'utf8'));
 const vvPackage = JSON.parse(fs.readFileSync(path.join(vv, 'package.json'), 'utf8'));
