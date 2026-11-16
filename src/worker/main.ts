@@ -44,9 +44,11 @@ const STATUS_IDS = ['vaporview-marker', 'vaporview-delta', 'vaporview-signal'];
 const POLL_HOLD_MS = 5_000;
 const POLL_MIN_SPACING_MS = 150;   // keeps the frame below Orca's limit of 120 messages in 10 s
 const BATCH_MAX_CHARS = 600_000;   // an answer must stay below 1 MiB
-// How long the worker waits for the next poll of a page that it asked "are you alive". A page in a
-// tab group with no focus can take more than a second (measured in a split view of Orca).
-const LIVE_PROBE_MS = 3_000;
+// "Are you alive": the worker sends a ping to the page and waits this long for the answer.
+const LIVE_PROBE_MS = 1_500;
+// A page that is alive polls again after this time at most (the page stops a poll with no answer
+// after 9 s). A page that polled no more for longer is gone.
+const PAGE_GONE_MS = 12_000;
 const FRAME_START_MS = 20_000;
 
 type WorkspaceContext = { workspaceId?: string; displayName: string; branch: string } | null;
@@ -71,7 +73,6 @@ class FrameLink {
   private waiting: ((batch: { messages: string }) => void) | undefined;
   private waitTimer: NodeJS.Timeout | undefined;
   private lastAnswerAt = 0;
-  private pollSeen: (() => void) | undefined;
   private started: (() => void) | undefined;
 
   post(message: unknown): void {
@@ -104,8 +105,6 @@ class FrameLink {
     else if (info !== this.lastPollInfo && this.lastPollInfo !== 'none') { this.onNote(`page ${instance} is now ${info}`); }
     this.lastPollAt = now;
     this.lastPollInfo = info;
-    this.pollSeen?.();
-    this.pollSeen = undefined;
     this.release({ messages: '[]' });
     return new Promise((resolve) => {
       this.waiting = resolve;
@@ -134,20 +133,31 @@ class FrameLink {
     }, wait);
   }
 
+  /** Sends a ping to the pages of the plugin. The hub sets it. */
+  sendPing: (payload: { instance: string; id: number }) => void = () => undefined;
+  private pings = new Map<number, (alive: boolean) => void>();
+  private nextPing = 1;
+
+  /** The page answered a ping. */
+  pong(id: number): void { this.pings.get(id)?.(true); this.pings.delete(id); }
+
   /**
-   * True if the connected page answers. Orca does not tell the worker when a page goes away.
-   * A page that is alive has a poll open, or it polls again at once. A page that polled no more
-   * for longer than one poll time is gone, and the answer is immediate.
+   * True if the connected page answers. Orca does not tell the worker when a page goes away, and
+   * in a split view Orca can lose the answer of an open poll. So the worker does not look at the
+   * polls for this. It sends a ping, and a page that is alive answers with a new request.
+   * A page that polled no more for a long time is gone, and the answer is immediate.
    */
   async isLive(): Promise<boolean> {
-    if (!this.instance) { return false; }
-    if (!this.waiting && Date.now() - this.lastAnswerAt > LIVE_PROBE_MS) { return false; }
-    const seen = new Promise<boolean>((resolve) => {
-      this.pollSeen = () => resolve(true);
-      setTimeout(() => resolve(false), LIVE_PROBE_MS);
+    const instance = this.instance;
+    if (!instance) { return false; }
+    if (this.lastPollAt && Date.now() - this.lastPollAt > PAGE_GONE_MS) { return false; }
+    const id = this.nextPing++;
+    const answer = new Promise<boolean>((resolve) => {
+      this.pings.set(id, resolve);
+      setTimeout(() => { this.pings.delete(id); resolve(false); }, LIVE_PROBE_MS);
     });
-    this.release({ messages: '[]' });   // a page that is alive polls again
-    return seen;
+    this.sendPing({ instance, id });
+    return answer;
   }
 
   whenStarted(): Promise<boolean> {
@@ -328,6 +338,7 @@ export default async function activate(orca: any): Promise<void> {
     log(`load ${waveformPath} for workspace ${ws.name}`);
     const link = new FrameLink();
     link.onNote = (text) => log(text);
+    link.sendPing = (payload) => orca.panels.post('editor.ping', { ...payload, docKey: key });
     const entry: Entry = { key, workspace: ws, waveformPath, document: undefined, panel: undefined as any, link, state: undefined };
     entry.panel = new WebviewPanel(VIEW_TYPE, (m) => link.post(m), () => void showTab(entry));
     entry.document = await provider.openCustomDocument(Uri.file(waveformPath), {}, token);
@@ -474,6 +485,13 @@ export default async function activate(orca: any): Promise<void> {
     // An unknown document that nobody closed: the worker started again. The frame starts again too.
     if (!entry) { return closedKeys.has(input?.docKey) ? { messages: '[]', closed: true } : { messages: '[]', restart: true }; }
     return entry.link.poll(input.instance, `visible=${input.visible} focus=${input.focus}`);
+  });
+
+  // The answer of a page to a ping of the worker.
+  orca.panels.handle('editor.pong', (input: any) => {
+    const entry = entries.get(input?.docKey);
+    if (entry && input.instance === entry.link.instance) { entry.link.pong(Number(input.id)); }
+    return { ok: true };
   });
 
   orca.panels.handle('editor.send', (input: any) => {

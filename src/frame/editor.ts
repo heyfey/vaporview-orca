@@ -209,20 +209,22 @@ async function main(): Promise<void> {
   (window as any).acquireVsCodeApi = () => api;
 
   // Messages from the worker to the webview. The frame pulls them.
+  // `pollRun` counts the poll loops. A new loop stops the loop before it.
+  let pollRun = 0;
   const poll = async (): Promise<void> => {
-    while (!closed) {
+    const run = ++pollRun;
+    while (!closed && run === pollRun) {
       let answer: any;
-      const asked = Date.now();
       try {
-        answer = await request('editor.poll', { docKey, instance, visible: document.visibilityState === 'visible', focus: document.hasFocus() }, 60_000);
+        // The worker answers after 5 s at most. Orca can lose an answer (seen in a split view),
+        // so the page stops the wait after 9 s and asks again.
+        answer = await request('editor.poll', { docKey, instance, visible: document.visibilityState === 'visible', focus: document.hasFocus() }, 9_000);
       } catch (err: any) {
-        console.error(`[vaporview] poll failed: ${err?.code ?? err}`);
-        await new Promise((r) => setTimeout(r, 1000));
+        if (run !== pollRun) { return; }
+        if (err?.code !== 'timeout') { console.error(`[vaporview] poll failed: ${err?.code ?? err}`); await new Promise((r) => setTimeout(r, 1000)); }
         continue;
       }
-      // Diagnostics: the worker answers a poll after 5 s at most. A longer time means that the
-      // answer was late, which the plugin log must show.
-      if (Date.now() - asked > 9000) { console.error(`[vaporview] poll answer of page ${instance} came after ${((Date.now() - asked) / 1000).toFixed(1)} s`); }
+      if (run !== pollRun) { return; }
       // A newer page shows this waveform (a second tab in a split view). vaporview has one view for
       // each waveform, so this page stops. The person can move the waveform back to this tab.
       if (answer.stale) {
@@ -290,6 +292,13 @@ async function main(): Promise<void> {
   });
 
   orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });
+  // "Are you alive" from the worker. The page answers with a new request, and starts a new poll,
+  // because the open poll is possibly one whose answer Orca lost.
+  orca.plugin.on('editor.ping', (p: { instance: string; id: number; docKey: string }) => {
+    if (closed || p?.instance !== instance) { return; }
+    request('editor.pong', { docKey, instance, id: p.id }).catch(() => undefined);
+    void poll();
+  });
 
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
