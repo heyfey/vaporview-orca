@@ -12,7 +12,7 @@ How to build, test, and change the plugin. The design is in [architecture.md](ar
 ## Build and test
 
 ```bash
-git clone --recurse-submodules <url of this repository>
+git clone --recurse-submodules https://github.com/heyfey/vaporview-orca.git
 cd vaporview-orca
 npm install
 npm run build:vaporview      # one time: dependencies and the WASM parser of the submodule

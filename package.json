@@ -4,6 +4,7 @@
   "private": true,
   "description": "Port of the vaporview waveform viewer to an Orca plugin",
   "license": "GPL-3.0-only",
+  "repository": "github:heyfey/vaporview-orca",
   "type": "module",
   "scripts": {
     "build:vaporview": "node scripts/build-vaporview.mjs",

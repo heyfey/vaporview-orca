@@ -5,6 +5,8 @@
   "version": "0.1.0",
   "description": "Waveform viewer for VCD, FST, and GHW files. A port of the VS Code extension vaporview.",
   "license": "GPL-3.0-only",
+  "repository": "https://github.com/heyfey/vaporview-orca",
+  "homepage": "https://github.com/heyfey/vaporview-orca",
   "cover": {
     "path": "docs/images/overview.png",
     "alt": "The Vaporview plugin in Orca: a waveform in an editor tab, with the waveform list and the netlist tree in the sidebar"
