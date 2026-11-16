@@ -146,8 +146,9 @@ this purpose, so the fit with the use model of the plugin is not confirmed.
   active surface of the workspace when a tab group gets the focus (`focusGroup` in
   `src/renderer/src/store/slices/tabs/tabs-group-actions.ts`, line 144). So the `active` flag of
   this event gives the worker what the view state event of VS Code gives vaporview. Until then the
-  page reports the `focus` event of its window (request `editor.focus`). Not yet known: if a
-  click on the tab title, with no click in the waveform, gives the page that event.
+  page reports the `focus` event of its window (request `editor.focus`). Measured by
+  hand (2026-11-16): a click in the waveform gives that event. A click on the title of a tab that
+  already shows in its group does not, so the tree stays on the other waveform.
 
 ## PR-1: custom editor with no content
 
