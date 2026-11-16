@@ -1,6 +1,7 @@
 # vaporview issue and PR drafts
 
 Drafts for `Lramseyer/vaporview` (upstream). Not yet filed. Nothing is pushed.
+On hold since 2026-11-16, by decision.
 
 - The fix is in the local vaporview clone, branch `fix/file-reader-per-document`, one commit on top
   of upstream `main` (`7b63f84`, version 1.6.1). One file changes: `src/extension_core/wasm_handler.ts`.
