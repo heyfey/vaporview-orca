@@ -94,7 +94,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Feature | vaporview | Plugin | Built | Tested | Reason and Orca PR |
 |---|---|---|---|---|---|
 | Netlist tree with lazy load | VS Code tree view | Tweaked | yes | Orca | HTML tree in the panel, with the look of the Orca file explorer (copied values and the Geist font). The native Orca `Tree` has no context menu, no row buttons, and 2000 items maximum. PR-9 |
-| Icons and icon colors | VS Code theme icons | Tweaked | yes | no | Same icon font. Fixed colors. |
+| Icons and icon colors | VS Code icons (codicons), one color for each kind | Tweaked | yes | Orca | Icons of the lucide set, which Orca uses, in one color. Each vaporview icon has a lucide icon (`src/frame/icons.ts`). A name with no lucide icon keeps the VS Code icon. |
 | Add variable (button on the row) | Inline button | Same | yes | Orca | |
 | Show in viewer (button on the row, menu) | Inline button | Same | yes | no | |
 | Add at a double click | Yes | Same | yes | no | The vaporview code detects the second click |

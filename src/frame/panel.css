@@ -4,7 +4,8 @@
    corners: Orca has a radius of 10 px. A row has 0.6 of it ("rounded-sm"), a field 0.8 ("rounded-md").
    field: FileExplorerNameFilter.tsx (32 px high, border, input color at 50 percent)
    scroll bar: src/shared/styles/scrollbar-sleek.css
-   font: Geist, the interface font of Orca (assets/fonts, SIL Open Font License) */
+   font: Geist, the interface font of Orca (assets/fonts, SIL Open Font License)
+   icons: lucide, the icon set of Orca (src/frame/icons.ts) */
 
 @font-face {
   font-family: 'Geist';
@@ -65,6 +66,7 @@ button, input { font: inherit; }
 }
 .vv-icon:hover { color: var(--orca-foreground); background: var(--orca-accent); }
 .vv-icon.codicon { font-size: 14px; }
+.vv-icon svg { width: 14px; height: 14px; }
 
 /* Text field, as "Find files" of Orca */
 .vv-field {
@@ -75,8 +77,10 @@ button, input { font: inherit; }
 .vv-field:focus-within { border-color: var(--orca-ring); box-shadow: 0 0 0 1px var(--orca-ring); }
 .vv-field input { flex: 1; min-width: 0; padding: 4px 0; color: var(--orca-foreground); background: transparent; border: 0; outline: none; }
 .vv-field input::placeholder { color: var(--orca-muted-foreground); }
-.vv-field-icon { flex: none; color: var(--orca-muted-foreground); font-size: 14px; }
-.vv-field .vv-icon { width: 16px; height: 16px; font-size: 12px; }
+.vv-field-icon { display: inline-flex; flex: none; width: 14px; height: 14px; color: var(--orca-muted-foreground); }
+.vv-field-icon svg { width: 14px; height: 14px; }
+.vv-field .vv-icon { width: 16px; height: 16px; }
+.vv-field .vv-icon svg { width: 12px; height: 12px; }
 
 /* Rows: list of waveforms, tree, search results, file browser */
 .vv-rows { padding: 6px 4px; overflow-x: hidden; overflow-y: auto; }
@@ -96,10 +100,9 @@ button, input { font: inherit; }
 .vv-twist.open { transform: rotate(90deg); }
 .vv-twist svg { width: 12px; height: 12px; }
 /* Icons have one color, as the icons of the Orca file explorer. */
-.vv-node-icon { flex: none; width: 16px; font-size: 14px; color: var(--orca-muted-foreground); }
+.vv-node-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 16px; height: 16px; font-size: 14px; color: var(--orca-muted-foreground); }
+.vv-node-icon svg { width: 14px; height: 14px; }
 .vv-node-row.selected .vv-node-icon, .vv-node-row:hover .vv-node-icon { color: var(--orca-foreground); }
-.vv-entry.folder::before { content: "\ea83"; font: 14px/1 codicon; color: var(--orca-muted-foreground); }
-.vv-entry.file::before { content: "\ea7b"; font: 14px/1 codicon; color: var(--orca-muted-foreground); }
 
 /* Messages and empty states */
 .vv-message { display: none; padding: 4px 12px; color: var(--orca-destructive); }

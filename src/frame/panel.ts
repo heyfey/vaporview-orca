@@ -2,6 +2,7 @@
 // selected waveform. The data comes from the worker.
 
 import { showMenu, writeClipboard, type MenuEntry } from './menu';
+import { icon as iconFor, lucideIcon } from './icons';
 
 declare const orca: any;
 
@@ -89,7 +90,7 @@ function renderList(): void {
   for (const w of state.waveforms) {
     const row = el('div', 'vv-row' + (w.key === state.active ? ' active' : ''));
     row.title = w.folder;
-    const close = el('button', 'vv-icon', '×');
+    const close = lucideIcon('x', 'vv-icon', 'button');
     close.title = 'Close Waveform';
     close.addEventListener('click', (e) => { e.stopPropagation(); void run(() => request('panel.close', { docKey: w.key })); });
     row.addEventListener('click', () => void run(() => request('panel.select', { docKey: w.key })));
@@ -117,7 +118,7 @@ async function browse(dir?: string): Promise<void> {
   input.spellcheck = false;
   input.title = 'Folder or waveform file. Press Enter.';
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { void run(() => browse(input.value.trim())); } });
-  const cancel = el('button', 'vv-icon', '×');
+  const cancel = lucideIcon('x', 'vv-icon', 'button');
   cancel.title = 'Cancel';
   cancel.addEventListener('click', () => { browserOpen = false; browser.replaceChildren(); });
   bar.append(input, cancel);
@@ -126,17 +127,20 @@ async function browse(dir?: string): Promise<void> {
   const entries = el('div', 'vv-entries vv-rows vv-scroll');
   const join = (name: string) => r.dir + (r.dir.endsWith(r.sep) ? '' : r.sep) + name;
   if (r.parent) {
-    const up = el('div', 'vv-entry folder', '..');
+    const up = el('div', 'vv-entry');
+    up.append(lucideIcon('folder', 'vv-node-icon'), el('span', 'vv-name', '..'));
     up.addEventListener('click', () => void run(() => browse(r.parent)));
     entries.append(up);
   }
   for (const name of r.folders) {
-    const row = el('div', 'vv-entry folder', name);
+    const row = el('div', 'vv-entry');
+    row.append(lucideIcon('folder', 'vv-node-icon'), el('span', 'vv-name', name));
     row.addEventListener('click', () => void run(() => browse(join(name))));
     entries.append(row);
   }
   for (const name of r.files) {
-    const row = el('div', 'vv-entry file', name);
+    const row = el('div', 'vv-entry');
+    row.append(lucideIcon('file', 'vv-node-icon'), el('span', 'vv-name', name));
     row.addEventListener('click', () => void run(() => openWaveform(join(name))));
     entries.append(row);
   }
@@ -161,9 +165,6 @@ openButton.addEventListener('click', () => {
 // --------------------------------------------------------------------------------------------
 // Netlist tree. The children of a node load when the node opens.
 // --------------------------------------------------------------------------------------------
-
-// The arrow of the Orca file explorer (lucide "chevron-right"). It turns when the node opens.
-const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
 
 type NodeView = { node: TreeNode; row: HTMLElement; open: () => Promise<void> };
 let views = new Map<number, NodeView>();
@@ -194,7 +195,8 @@ function renderTitleButtons(buttons: InlineButton[]): void {
   showSearchField(buttons.some((b) => b.command === SEARCH_COMMAND));
   for (const b of buttons) {
     if (b.command === SEARCH_COMMAND) { continue; }
-    const button = el('button', 'vv-icon' + (b.icon ? ` codicon codicon-${b.icon}` : ''), b.icon ? '' : b.title.slice(0, 1));
+    const button = iconFor(b.icon, 'vv-icon', 'button');
+    if (!b.icon) { button.textContent = b.title.slice(0, 1); }
     button.title = b.title;
     button.addEventListener('click', () => void run(() => request('menu.run', { source: 'title', command: b.command })));
     treeButtons.append(button);
@@ -206,13 +208,13 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   const row = el('div', 'vv-node-row');
   row.style.paddingLeft = `${8 + depth * 16}px`;
   row.title = node.tooltip || node.label;
-  const twist = el('span', 'vv-twist');
-  if (node.expandable) { twist.innerHTML = CHEVRON; }
-  const icon = el('span', node.icon ? `vv-node-icon codicon codicon-${node.icon}` : 'vv-node-icon');
+  const twist = node.expandable ? lucideIcon('chevron-right', 'vv-twist') : el('span', 'vv-twist');
+  const icon = iconFor(node.icon, 'vv-node-icon');
   if (COLORED_ICONS && node.color) { icon.style.color = ICON_COLORS[node.color] ?? ''; }
   row.append(twist, icon, el('span', 'vv-name', node.label), el('span', 'vv-dim', node.description));
   for (const b of node.inline) {
-    const button = el('button', 'vv-icon vv-inline' + (b.icon ? ` codicon codicon-${b.icon}` : ''), b.icon ? '' : b.title.slice(0, 1));
+    const button = iconFor(b.icon, 'vv-icon vv-inline', 'button');
+    if (!b.icon) { button.textContent = b.title.slice(0, 1); }
     button.title = b.title;
     button.addEventListener('click', (e) => { e.stopPropagation(); void runTreeCommand(node.id, b.command); });
     row.append(button);
@@ -310,11 +312,11 @@ function showSearchField(searchable: boolean): void {
     if (e.key === 'Escape') { void request('search.hide'); }
     if (e.key === 'Enter') { (results.firstElementChild as HTMLElement | null)?.click(); }
   });
-  const clear = el('button', 'vv-icon codicon codicon-close');
+  const clear = lucideIcon('x', 'vv-icon', 'button');
   clear.title = 'Clear the search';
   clear.style.visibility = 'hidden';
   clear.addEventListener('click', () => void request('search.hide'));
-  field.append(el('span', 'vv-field-icon codicon codicon-search'), input, clear);
+  field.append(lucideIcon('search', 'vv-field-icon'), input, clear);
   searchInfo = el('div', 'vv-search-info');
   searchBox.append(field, searchInfo);
   searchInput = input;
@@ -338,7 +340,7 @@ function renderSearch(s: SearchState): void {
   if (!active) { return; }
   s.items.forEach((item, index) => {
     const row = el('div', 'vv-result');
-    const icon = el('span', item.icon ? `vv-node-icon codicon codicon-${item.icon}` : 'vv-node-icon');
+    const icon = iconFor(item.icon, 'vv-node-icon');
     if (COLORED_ICONS && item.color) { icon.style.color = ICON_COLORS[item.color] ?? ''; }
     const text = el('div', 'vv-result-text');
     const first = el('div', 'vv-result-line');

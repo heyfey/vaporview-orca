@@ -26,4 +26,5 @@ In Orca, open the Vaporview panel in the right sidebar and select "Open Waveform
   backward compatible, so that upstream can merge them.
 
 License: AGPL-3.0, the same as vaporview. The font in `assets/fonts` is Geist, under the SIL Open
-Font License (`assets/fonts/Geist-OFL.txt`).
+Font License (`assets/fonts/Geist-OFL.txt`). The icon shapes in `src/frame/lucide-icons.ts` are from the
+lucide icon set, under the ISC license.
