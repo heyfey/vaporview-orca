@@ -39,10 +39,14 @@ const ADD_MANY_SIGNALS = /^You are about to add a large number of signals/;
 // The status bar items of the manifest, in the order in which vaporview makes its items.
 const STATUS_IDS = ['vaporview-marker', 'vaporview-delta', 'vaporview-signal'];
 
-const POLL_HOLD_MS = 20_000;       // a poll with no message returns after this time
+// A poll with no message returns after this time. Orca does not tell the worker when a page goes
+// away, so a short time lets the worker see soon that a page polls no more.
+const POLL_HOLD_MS = 5_000;
 const POLL_MIN_SPACING_MS = 150;   // keeps the frame below Orca's limit of 120 messages in 10 s
 const BATCH_MAX_CHARS = 600_000;   // an answer must stay below 1 MiB
-const LIVE_PROBE_MS = 800;
+// How long the worker waits for the next poll of a page that it asked "are you alive". A page in a
+// tab group with no focus can take more than a second (measured in a split view of Orca).
+const LIVE_PROBE_MS = 3_000;
 const FRAME_START_MS = 20_000;
 
 type WorkspaceContext = { workspaceId?: string; displayName: string; branch: string } | null;
@@ -85,8 +89,12 @@ class FrameLink {
   /** The webview in the frame finished its start. */
   markStarted(): void { this.started?.(); this.started = undefined; }
 
-  poll(instance: string): Promise<{ messages: string; stale?: boolean }> {
+  /** What the page said about itself in its last poll, for the log. */
+  lastPollInfo = 'none';
+
+  poll(instance: string, info = ''): Promise<{ messages: string; stale?: boolean }> {
     if (instance !== this.instance) { return Promise.resolve({ messages: '[]', stale: true }); }
+    this.lastPollInfo = info;
     this.pollSeen?.();
     this.pollSeen = undefined;
     this.release({ messages: '[]' });
@@ -117,14 +125,19 @@ class FrameLink {
     }, wait);
   }
 
-  /** True if the connected frame answers. Orca does not tell the worker when a frame goes away. */
+  /**
+   * True if the connected page answers. Orca does not tell the worker when a page goes away.
+   * A page that is alive has a poll open, or it polls again at once. A page that polled no more
+   * for longer than one poll time is gone, and the answer is immediate.
+   */
   async isLive(): Promise<boolean> {
     if (!this.instance) { return false; }
+    if (!this.waiting && Date.now() - this.lastAnswerAt > LIVE_PROBE_MS) { return false; }
     const seen = new Promise<boolean>((resolve) => {
       this.pollSeen = () => resolve(true);
       setTimeout(() => resolve(false), LIVE_PROBE_MS);
     });
-    this.release({ messages: '[]' });   // the frame polls again immediately if it is alive
+    this.release({ messages: '[]' });   // a page that is alive polls again
     return seen;
   }
 
@@ -399,7 +412,7 @@ export default async function activate(orca: any): Promise<void> {
   async function showTab(entry: Entry): Promise<void> {
     const started = Date.now();
     const live = await entry.link.isLive();
-    log(`show ${path.basename(entry.waveformPath)}: ${live ? 'a page shows it, no tab opens' : 'no page answers, Orca opens the tab'} (${Date.now() - started} ms, page ${entry.link.instance ?? 'none'})`);
+    log(`show ${path.basename(entry.waveformPath)}: ${live ? 'a page shows it, no tab opens' : 'no page answers, Orca opens the tab'} (${Date.now() - started} ms, page ${entry.link.instance ?? 'none'}, last poll: ${entry.link.lastPollInfo})`);
     if (live) { return; }
     await openTab(entry);
   }
@@ -449,7 +462,7 @@ export default async function activate(orca: any): Promise<void> {
     const entry = entries.get(input?.docKey);
     // An unknown document that nobody closed: the worker started again. The frame starts again too.
     if (!entry) { return closedKeys.has(input?.docKey) ? { messages: '[]', closed: true } : { messages: '[]', restart: true }; }
-    return entry.link.poll(input.instance);
+    return entry.link.poll(input.instance, `visible=${input.visible} focus=${input.focus}`);
   });
 
   orca.panels.handle('editor.send', (input: any) => {

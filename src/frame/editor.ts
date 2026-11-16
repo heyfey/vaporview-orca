@@ -213,7 +213,7 @@ async function main(): Promise<void> {
     while (!closed) {
       let answer: any;
       try {
-        answer = await request('editor.poll', { docKey, instance }, 60_000);
+        answer = await request('editor.poll', { docKey, instance, visible: document.visibilityState === 'visible', focus: document.hasFocus() }, 60_000);
       } catch (err: any) {
         console.error(`[vaporview] poll failed: ${err?.code ?? err}`);
         await new Promise((r) => setTimeout(r, 1000));
