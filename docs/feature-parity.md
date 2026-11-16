@@ -82,8 +82,9 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Ruler increment "Custom" | Asks for the value in an input box | Blocked | no | | No input prompt. PR-7 (deferred) |
 | Shade or outline bit vectors, animations, scrolling mode | Menu | Same | yes | no | |
 | WaveDrom: copy selection, clock settings | Submenu | Same | yes | Orca | The copy to the clipboard was tested by hand. The clock settings are not tested. |
-| Zoom to fit | Ctrl+0 | Same | yes | Orca (events) | With a real keyboard, Orca possibly takes Ctrl+0 first. Not tested by hand. |
-| Other keybindings (16 of the 17) | VS Code keybindings | Tweaked | yes | no | Key events in the page. Orca keybindings are `global` or `workspace` only. Keys with Ctrl or Alt are not tested by hand. Ctrl+F opens the search in the panel, if the panel shows. |
+| Zoom to fit | Ctrl+0 | Blocked | yes | Orca | The command works (menu of the control bar, sent key event). The key Ctrl+0 does not: Orca runs its own "zoom reset" for it. Orca sends each key with Ctrl from an editor frame to its own shortcuts, and the frame cannot stop that. PR-10 |
+| Other keybindings (16 of the 17) | VS Code keybindings | Tweaked | yes | Orca | Key events in the page. Tested by hand: Ctrl+R, F2, G, 1 to 8, Alt+`=`, Alt+`-` work. Ctrl+F opens the search in the panel, but the text field does not get the keyboard focus, because a frame cannot move the focus to a different frame (Orca issue #40813). The person must click the field. |
+| Keys of the viewer page (arrows, N, Home, End, Ctrl+A, Escape, Delete) | Webview code | Same | yes | Orca | Tested by hand, all work |
 | Signal colors follow the color theme | Colors of the VS Code theme | Tweaked | yes | Orca | Fixed colors. Orca gives a plugin no theme colors for this. See decision D3. |
 | Page colors follow the theme | VS Code theme variables | Tweaked | yes | Orca | Mapped to the 20 `--orca-*` variables. Only the dark theme was seen. |
 | "More Settings", "Show Readme" | Open VS Code pages | Blocked | no | | Orca has no API to open its settings page or a document. The menu does not show the items. |

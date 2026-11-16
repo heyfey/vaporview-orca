@@ -37,6 +37,7 @@ Changes to propose to Orca (`stablyai/orca`) for the limits in [architecture.md]
 | PR-7 | Input prompt and quick pick for a plugin command | Medium. Eight vaporview features need it (see [feature-parity.md](feature-parity.md)). They are blocked until Orca has it. | High. Each plugin command that needs one value from the person. | M (250 to 400), estimated from the built-ins below, not from a full read | Medium. Where the prompt shows, and focus. | Medium to high |
 | PR-8 | Toast in the Orca window for a plugin (information, success, warning, error) | Medium. vaporview messages get the Orca look, and they show when the panel is closed. | High. Each plugin has short results and errors to show. | Not yet estimated | Not yet known | Not yet known |
 | PR-9 | Orca look for an HTML panel: more style variables (sidebar color, interface font) and the Orca style sheet for rows, fields, and scroll bars. Or a native `Tree` with a context menu, row buttons, and more than 2000 items. | Medium. The panel copies the Orca values by hand and must follow each Orca change. | High. Each HTML panel has the same problem. | Not yet estimated | Not yet known | Not yet known |
+| PR-10 | A custom editor can handle a key with Ctrl or Cmd itself, before the Orca shortcuts | Medium. Ctrl+0 (zoom to fit) runs the Orca "zoom reset" in place of the viewer command. | High. Each editor with its own shortcuts (find, zoom, save variants). | Not yet estimated | Not yet known | Not yet known |
 | | Workspace id for frames | | | | | Done in host API 1.7 |
 
 Recommended order:
@@ -224,6 +225,23 @@ this purpose, so the fit with the use model of the plugin is not confirmed.
   2. For the native `Tree`: a context menu for an item, buttons on a row, multiple selection,
      and children that load when a node opens with no fixed item limit.
 - **Backward compatible.** New variables, a new optional file, and new optional properties.
+
+## PR-10: a custom editor handles a key before the Orca shortcuts
+
+- **Today.** In an editor frame, Orca sends each key press with Ctrl or Cmd to its own shortcut
+  handling, in the capture phase and with no condition (`src/shared/plugins/frames/plugin-panel-shell.ts`
+  line 227). The frame gets the key too, but it cannot tell Orca that it handled the key. A plugin
+  keybinding in the manifest is `global` or `workspace` only.
+- **Effect on the plugin.** Ctrl+0 is "zoom to fit" in vaporview and "zoom reset" in Orca. Orca
+  runs its action. Ctrl+R and Ctrl+F work, because Orca has no action on them there.
+- **Proposal.** Orca runs its shortcut only if the frame did not handle the key
+  (`event.defaultPrevented` after the frame handlers), or a plugin keybinding gets a third scope:
+  "when this custom editor has the focus".
+- **Backward compatible.** An editor that handles no key behaves as today.
+
+Related, not ours: Orca issue #40813 asks for a way to move the keyboard focus between the editor
+tab and the panel of a plugin. The plugin has the same problem: Ctrl+F in the viewer opens the
+search in the panel, but the search field does not get the focus.
 
 ## PR-5: keep a hidden frame alive
 
