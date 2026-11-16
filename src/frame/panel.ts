@@ -10,7 +10,7 @@ type Waveform = { key: string; name: string; folder: string };
 type ListState = { workspace: string | null; waveforms: Waveform[]; active: string | null };
 type InlineButton = { command: string; title: string; icon: string };
 type TreeNode = {
-  id: number; label: string; description: string; expandable: boolean; kind: string;
+  id: number; label: string; description: string; expandable: boolean; open?: boolean; kind: string;
   icon: string; color: string; tooltip: string; inline: InlineButton[];
 };
 
@@ -232,13 +232,14 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   let isOpen = false;
   let loaded: Promise<void> | undefined;
 
-  const setOpen = async (next: boolean): Promise<void> => {
+  // `tell` is false when the panel opens a node that the worker already knows as open.
+  const setOpen = async (next: boolean, tell = true): Promise<void> => {
     if (!node.expandable || isOpen === next) { return loaded; }
     isOpen = next;
     if (isOpen) { openIds.add(node.id); } else { openIds.delete(node.id); }
     twist.classList.toggle('open', isOpen);
     children.style.display = isOpen ? '' : 'none';
-    void request('tree.action', { id: node.id, action: isOpen ? 'expand' : 'collapse' });
+    if (tell) { void request('tree.action', { id: node.id, action: isOpen ? 'expand' : 'collapse' }); }
     if (isOpen && !loaded) { loaded = loadChildren(children, node.id, depth + 1); }
     return loaded;
   };
@@ -268,7 +269,9 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   views.set(node.id, { node, row, open: () => setOpen(true) as Promise<void> });
   wrap.append(row, children);
   if (selected.has(node.id)) { row.classList.add('selected'); }
-  if (openIds.has(node.id)) { void run(() => setOpen(true) as Promise<void>); }
+  // A node that was open before (in this waveform, also before a change to a different waveform
+  // and back) opens again. Its children load on demand, as for a click.
+  if (node.open || openIds.has(node.id)) { void run(() => setOpen(true, false) as Promise<void>); }
   return wrap;
 }
 

@@ -97,6 +97,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Feature | vaporview | Plugin | Built | Tested | Reason and Orca PR |
 |---|---|---|---|---|---|
 | Netlist tree with lazy load | VS Code tree view | Tweaked | yes | Orca | HTML tree in the panel, with the look of the Orca file explorer (copied values and the Geist font). The native Orca `Tree` has no context menu, no row buttons, and 2000 items maximum. PR-9 |
+| Open nodes of the tree after a change of waveform | vaporview records the open state in each tree element, and VS Code opens those nodes again | Same | yes | Node | The worker gives the recorded state to the panel (`open`), and the panel opens those nodes. Each open node is one request for its children, as for a click. Not yet seen in Orca. A tree with more than about 100 open scopes can reach the Orca limit of 120 messages in 10 s. |
 | Icons and icon colors | VS Code icons (codicons), one color for each kind | Tweaked | yes | Orca | Icons of the lucide set, which Orca uses, in one color. Each vaporview icon has a lucide icon (`src/frame/icons.ts`). The plugin setting "Netlist Icons" = "Vaporview" gives the vaporview icons and colors again, in the tree and in the search results. |
 | Add variable (button on the row) | Inline button | Same | yes | Orca | |
 | Show in viewer (button on the row, menu) | Inline button | Same | yes | no | |

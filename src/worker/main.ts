@@ -500,6 +500,9 @@ export default async function activate(orca: any): Promise<void> {
       label,
       description: typeof item.description === 'string' ? item.description : '',
       expandable: item.collapsibleState !== TreeItemCollapsibleState.None,
+      // vaporview records the open state in the element (as VS Code tells it at each expand and
+      // collapse). The panel opens such a node, so a waveform gets its open nodes back.
+      open: item.collapsibleState === TreeItemCollapsibleState.Expanded,
       kind: item.contextValue ?? '',
       icon: item.iconPath?.id ?? '',
       color: item.iconPath?.color?.id ?? '',

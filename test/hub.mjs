@@ -154,18 +154,23 @@ check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart 
   // Two waveforms show at the same time (a split view). The tab that gets the focus sets the tree.
   // This block is the last one and closes no waveform: the close of two waveforms in one run
   // stops the worker, because of a vaporview defect (see D10 in docs/feature-parity.md).
+  const before = await req('tree.children', {});
+  check(before.items[0].open === false, 'a node of the tree starts closed');
+  await req('tree.action', { id: before.items[0].id, action: 'expand' });
   const second = path.join(workspacePath, 'second.vcd');
   fs.copyFileSync(waveform, second);
   const other = await req('panel.open', { path: second });
   const otherSession = JSON.parse(fs.readFileSync(path.join(workspacePath, '.vaporview', 'second.vcd.vaporview.json'), 'utf8'));
   await req('editor.hello', { instance: 'g1', fileName: otherSession.fileName, session: otherSession, workspace: frameContext });
   check((await req('panel.state', { workspace: context })).active === other.docKey, 'the second waveform is the active one after its page starts');
+  check((await req('tree.children', {})).items[0].open === false, 'the tree of the second waveform has its own open state');
   await req('editor.focus', { docKey: again.docKey, instance: 'f2' });
   check((await req('panel.state', { workspace: context })).active === other.docKey, 'the focus report of a stale page changes nothing');
   await req('editor.focus', { docKey: again.docKey, instance: 'f3' });
   check((await req('panel.state', { workspace: context })).active === again.docKey, 'the tab that gets the focus makes its waveform the active one');
   const tree = await req('tree.children', {});
   check(tree.items.length > 0, 'the tree shows the waveform of the tab with the focus');
+  check(tree.items[0].open === true, 'a node that was open is open again after a change to a different waveform and back');
 }
 fs.rmSync(workspacePath, { recursive: true, force: true });
 process.exit(process.exitCode ?? 0);
