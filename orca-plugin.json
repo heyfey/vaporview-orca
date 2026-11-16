@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "vaporview",
   "name": "Vaporview",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Waveform viewer for VCD, FST, and GHW files. A port of the VS Code extension vaporview.",
   "license": "GPL-3.0-only",
   "repository": "https://github.com/heyfey/vaporview-orca",

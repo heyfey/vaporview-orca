@@ -1,6 +1,6 @@
 {
   "name": "vaporview-orca",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Port of the vaporview waveform viewer to an Orca plugin",
   "license": "GPL-3.0-only",
@@ -11,6 +11,7 @@
     "build": "node scripts/build.mjs",
     "test:headless": "node scripts/build.mjs --headless && node build/headless.mjs && node build/headless.mjs test/data/tpu.fst",
     "sync": "bash scripts/sync-windows.sh",
+    "release": "node scripts/release.mjs",
     "test:hub": "node test/hub.mjs && node test/hub.mjs test/data/tpu.fst",
     "test": "npm run build && npm run test:when && npm run test:headless && npm run test:hub",
     "build:check": "npm run build && git diff --exit-code --stat -- dist orca-plugin.json",
