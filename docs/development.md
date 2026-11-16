@@ -16,13 +16,13 @@ git clone --recurse-submodules <url of this repository>
 cd vaporview-orca
 npm install
 npm run build:vaporview      # one time: dependencies and the WASM parser of the submodule
-npm run build                # makes the plugin in build/plugin
-npm test                     # runs the vaporview core and the built worker in plain Node
+npm run build                # makes the plugin files in dist/, and a copy to load in build/plugin
+npm test                     # builds, then runs the vaporview core and the built worker in plain Node
 ```
 
 If you cloned without `--recurse-submodules`, run `git submodule update --init`.
 
-`npm test` needs no Orca. It has three parts:
+`npm test` needs no Orca. It builds first, then it has three parts:
 
 | Script | What it runs |
 |---|---|
@@ -35,7 +35,8 @@ If you cloned without `--recurse-submodules`, run `git submodule update --init`.
 
 ## Load the plugin in Orca
 
-The plugin is the folder `build/plugin`. Load it as a development plugin with the Orca CLI:
+The build makes the folder `build/plugin`. It holds only the files that Orca needs: the manifest,
+`dist/`, and the pictures. Load it as a development plugin with the Orca CLI:
 
 ```bash
 orca plugin dev load <path of build/plugin>
@@ -66,7 +67,8 @@ From WSL, call the Windows CLI:
 
 | Path | Content |
 |---|---|
-| `orca-plugin.json` | The plugin manifest. The build adds the vaporview settings to it. |
+| `orca-plugin.json` | The plugin manifest. The build writes its settings list from the vaporview settings. |
+| `dist/` | The built plugin files. They are in git, see "The built files are in git". |
 | `src/adapter/` | The `vscode` module that the vaporview code imports, made for Orca |
 | `src/worker/` | The plugin worker: runs the vaporview extension code and moves messages |
 | `src/frame/` | The pages: the editor (the vaporview webview) and the sidebar panel |
@@ -79,10 +81,30 @@ From WSL, call the Windows CLI:
 | `docs/` | Design, feature state, Orca proposals, and measured Orca behavior |
 | `docs/drafts/` | Drafts of issues and PRs for other projects, not yet filed |
 | `docs/images/` | Pictures for the README |
-| `build/` | Build output (not in git) |
+| `build/` | The copy for a development load, and test bundles (not in git) |
 | `testdata/` | Your own waveform files (not in git) |
 
 Do not commit a waveform file that is not yours to publish. Put such files in `testdata/`.
+
+## The built files are in git
+
+Orca installs a plugin from the files of a git commit. It does not run a build. So the repository
+root is the plugin: `orca-plugin.json` at the root points to the built files in `dist/`, and
+`dist/` is in git.
+
+- After a change in `src/`, in the manifest, or of the submodule commit: run `npm run build` and
+  commit `dist/` together with the change.
+- `npm run build:check` builds and fails if `dist/` or the manifest differs from git.
+- Do not edit a file in `dist/` by hand.
+- The parser file (`dist/ext/target/.../filehandler.wasm`) comes from `npm run build:vaporview`.
+  That script tells the Rust compiler to replace the paths of your machine, so that they are not
+  in the file. A different Rust version can give a different file, so run `build:vaporview` only
+  when the submodule commit changes.
+- A person who installs the plugin gets all files of the commit, also `src/`, `docs/`, and `test/`.
+  Keep large files out of the repository. Orca permits 2,000 files and 50 MiB for a plugin.
+
+Do not load the repository root as a development plugin. The submodule folder has the Rust build
+output, which is larger than the Orca limits. Load `build/plugin`.
 
 ## The vaporview version
 
@@ -99,8 +121,8 @@ git fetch
 git checkout <tag or commit>
 cd ..
 npm run build:vaporview
-npm run build && npm test
-git add vaporview
+npm test
+git add vaporview dist orca-plugin.json
 git commit
 ```
 

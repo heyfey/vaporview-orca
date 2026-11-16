@@ -4,13 +4,14 @@
   "name": "Vaporview",
   "version": "0.1.0",
   "description": "Waveform viewer for VCD, FST, and GHW files. A port of the VS Code extension vaporview.",
+  "license": "GPL-3.0-only",
   "cover": {
-    "path": "images/overview.png",
+    "path": "docs/images/overview.png",
     "alt": "The Vaporview plugin in Orca: a waveform in an editor tab, with the waveform list and the netlist tree in the sidebar"
   },
   "screenshots": [
     {
-      "path": "images/overview.png",
+      "path": "docs/images/overview.png",
       "alt": "The Vaporview plugin in Orca: a waveform in an editor tab, with the waveform list and the netlist tree in the sidebar",
       "caption": "A waveform with the netlist tree"
     }
@@ -20,14 +21,14 @@
   },
   "execution": "trusted-worker",
   "pluginApi": 1,
-  "main": "worker.js",
+  "main": "dist/worker.js",
   "contributes": {
     "panels": [
       {
         "id": "waveforms",
         "title": "Vaporview",
         "icon": "activity",
-        "entry": "panel.html",
+        "entry": "dist/panel.html",
         "ui": "html"
       }
     ],
@@ -38,7 +39,7 @@
         "extensions": [
           ".vaporview.json"
         ],
-        "entry": "editor.html",
+        "entry": "dist/editor.html",
         "frame": "isolated"
       }
     ],
@@ -72,6 +73,223 @@
         ],
         "default": "Orca",
         "description": "The icons of the items in the netlist tree and in the search results. \"Orca\" uses the icon set of Orca in one color. \"Vaporview\" uses the icons and colors of vaporview in VS Code."
+      },
+      {
+        "key": "scrollingMode",
+        "title": "Scrolling Mode",
+        "type": "string",
+        "description": "Scrolling mode for the waveform viewer. Options: 'mouse' (default), 'touch'.",
+        "default": "Mouse",
+        "enum": [
+          "Mouse",
+          "Touchpad",
+          "Auto"
+        ]
+      },
+      {
+        "key": "touchpadPinchSensitivity",
+        "title": "Touchpad Pinch Sensitivity",
+        "type": "number",
+        "description": "Touchpad pinch zoom sensitivity - Higher values Zoom faster.",
+        "default": 1,
+        "minimum": 0.1,
+        "maximum": 10
+      },
+      {
+        "key": "sortNetlist",
+        "title": "Sort Netlist",
+        "type": "boolean",
+        "description": "Alphabetically sort scopes, parameters, and variables in the netlist view",
+        "default": false
+      },
+      {
+        "key": "removeGlitchTransitions",
+        "title": "Remove Glitch Transitions",
+        "type": "boolean",
+        "description": "Remove glitch transitions (multiple value changes in a single time step) in the waveform viewer. Files must be reloaded for this setting to take effect.",
+        "default": false
+      },
+      {
+        "key": "defaultTimeUnit",
+        "title": "Default Time Unit",
+        "type": "string",
+        "description": "When opeining a new wavefom dump file, users can specify a default time unit to convert to.",
+        "default": "none",
+        "enum": [
+          "fs",
+          "ps",
+          "ns",
+          "µs",
+          "ms",
+          "s",
+          "none"
+        ]
+      },
+      {
+        "key": "defaultAutoReload",
+        "title": "Default Auto Reload",
+        "type": "boolean",
+        "description": "Recommended: false (unchecked) - default state for the 'Auto Reload' checkbox in the control bar. When enabled, files opened will have auto reload enabled by default.",
+        "default": false
+      },
+      {
+        "key": "showRulerLines",
+        "title": "Show Ruler Lines",
+        "type": "boolean",
+        "description": "Vertical ruler lines in the waveform viewer.",
+        "default": true
+      },
+      {
+        "key": "fillMultiBitValues",
+        "title": "Fill Multi Bit Values",
+        "type": "boolean",
+        "description": "Multi-bit renderer style - If checked, fills the value box with color. If unchecked, only the outline is drawn.",
+        "default": false
+      },
+      {
+        "key": "multiBitFixedHeight",
+        "title": "Multi Bit Fixed Height",
+        "type": "boolean",
+        "description": "Bit vector renderer style - If checked, multi-bit signals are drawn with a fixed height. If unchecked, short transitions are drawn with a smaller height.",
+        "default": true
+      },
+      {
+        "key": "defaultNameType",
+        "title": "Default Name Type",
+        "type": "string",
+        "default": "fullPath",
+        "enum": [
+          "fullPath",
+          "signalName"
+        ]
+      },
+      {
+        "key": "defaultSingleBitColor",
+        "title": "Default Single Bit Color",
+        "type": "number",
+        "description": "Default waveform color for single bit signals.",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 8
+      },
+      {
+        "key": "defaultMultiBitColor",
+        "title": "Default Multi Bit Color",
+        "type": "number",
+        "description": "Default waveform color for multi bit signals.",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 8
+      },
+      {
+        "key": "defaultParamColor",
+        "title": "Default Param Color",
+        "type": "number",
+        "description": "Default waveform color for parameters.",
+        "default": 3,
+        "minimum": 1,
+        "maximum": 8
+      },
+      {
+        "key": "defaultStringColor",
+        "title": "Default String Color",
+        "type": "number",
+        "description": "Default waveform color for strings.",
+        "default": 2,
+        "minimum": 1,
+        "maximum": 8
+      },
+      {
+        "key": "defaultEnumColor",
+        "title": "Default Enum Color",
+        "type": "number",
+        "description": "Default waveform color for enums.",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 8
+      },
+      {
+        "key": "defaultCustomSignalColor",
+        "title": "Default Custom Signal Color",
+        "type": "number",
+        "description": "Default waveform color for custom signals.",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 8
+      },
+      {
+        "key": "customColor5",
+        "title": "Custom Color5",
+        "type": "string",
+        "description": "Fallback color for Color 5, must be a valid color name.",
+        "default": "#ffa557"
+      },
+      {
+        "key": "customColor6",
+        "title": "Custom Color6",
+        "type": "string",
+        "description": "Fallback color for Color 6, must be a valid color name.",
+        "default": "#dcdcaa"
+      },
+      {
+        "key": "customColor7",
+        "title": "Custom Color7",
+        "type": "string",
+        "description": "Fallback color for Color 7, must be a valid color name.",
+        "default": "#d2a8ff"
+      },
+      {
+        "key": "customColor8",
+        "title": "Custom Color8",
+        "type": "string",
+        "description": "Fallback color for Color 8, must be a valid color name.",
+        "default": "#4abfa8"
+      },
+      {
+        "key": "enableAnimations",
+        "title": "Enable Animations",
+        "type": "boolean",
+        "description": "Enable animations for the waveform viewer.",
+        "default": true
+      },
+      {
+        "key": "animationDuration",
+        "title": "Animation Duration",
+        "type": "number",
+        "description": "Animation duration in milliseconds.",
+        "default": 50,
+        "minimum": 5,
+        "maximum": 500
+      },
+      {
+        "key": "useGlow",
+        "title": "Use Glow",
+        "type": "boolean",
+        "description": "Enable CRT glow effect for the waveform viewer. This is aesthetic only and may impact performance.",
+        "default": false
+      },
+      {
+        "key": "overrideDevicePixelRatio",
+        "title": "Override Device Pixel Ratio",
+        "type": "boolean",
+        "description": "Recommended: false (unchecked) - Override the device pixel ratio for the waveform viewer. This can be used to improve performance on high-DPI displays, or correct for incorrect device pixel ratio detection.",
+        "default": false
+      },
+      {
+        "key": "userPixelRatio",
+        "title": "User Pixel Ratio",
+        "type": "number",
+        "description": "Device pixel ratio for the waveform viewer. This is only used if 'Override Device Pixel Ratio' is enabled.",
+        "default": 1,
+        "minimum": 0.1,
+        "maximum": 10
+      },
+      {
+        "key": "disableAnalogRendererOptimizations",
+        "title": "Disable Analog Renderer Optimizations",
+        "type": "boolean",
+        "description": "Recommended: false (unchecked) - Disable optimizations for the analog renderer. This may reduce rendering performance.",
+        "default": false
       }
     ]
   },

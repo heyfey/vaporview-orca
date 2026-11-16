@@ -6,12 +6,13 @@
   "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
-    "build:vaporview": "cd vaporview && npm ci --no-audit --no-fund && npm run compile-wasm",
+    "build:vaporview": "node scripts/build-vaporview.mjs",
     "build": "node scripts/build.mjs",
     "test:headless": "node scripts/build.mjs --headless && node build/headless.mjs && node build/headless.mjs test/data/tpu.fst",
     "sync": "bash scripts/sync-windows.sh",
-    "test:hub": "node scripts/build.mjs && node test/hub.mjs && node test/hub.mjs test/data/tpu.fst",
-    "test": "npm run test:when && npm run test:headless && npm run test:hub",
+    "test:hub": "node test/hub.mjs && node test/hub.mjs test/data/tpu.fst",
+    "test": "npm run build && npm run test:when && npm run test:headless && npm run test:hub",
+    "build:check": "npm run build && git diff --exit-code --stat -- dist orca-plugin.json",
     "test:when": "node test/when.mjs"
   },
   "devDependencies": {

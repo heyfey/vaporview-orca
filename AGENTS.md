@@ -32,7 +32,9 @@ A port of the VS Code extension vaporview to an Orca plugin. The vaporview code 
 
 ## Before a commit
 
-- `npm run build && npm test` passes.
+- `npm test` passes (it builds first).
+- `dist/` and `orca-plugin.json` are committed with the change that made them (`npm run build:check`).
+  The built files are in git because Orca installs a plugin with no build.
 - `docs/feature-parity.md` is current for the change.
 - `README.md` stays short and user-facing: install, use, and the differences from vaporview.
   Technical detail and limits go into `docs/`.
@@ -41,7 +43,7 @@ A port of the VS Code extension vaporview to an Orca plugin. The vaporview code 
 
 ```bash
 npm run build:vaporview   # one time, and after a change of the submodule commit
-npm run build
+npm run build             # writes dist/ and build/plugin
 npm test
 npm run sync              # Orca on Windows with the source in WSL
 ```

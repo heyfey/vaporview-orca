@@ -45,7 +45,7 @@ const req = async (name, input = {}) => {
 const check = (ok, what) => { console.log(ok ? 'ok  ' : 'FAIL', what); if (!ok) { process.exitCode = 1; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const { default: activate } = await import(path.join(here, '..', 'build', 'plugin', 'worker.js'));
+const { default: activate } = await import(path.join(here, '..', 'dist', 'worker.js'));
 await activate(orca);
 
 const openVcd = () => fs.readdirSync('/proc/self/fd').filter((n) => { try { return fs.readlinkSync('/proc/self/fd/' + n).endsWith('.vcd'); } catch { return false; } }).length;

@@ -10,7 +10,7 @@ const waveform = process.argv[2] ? path.resolve(process.argv[2]) : path.join(her
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const brief = (v: unknown) => JSON.stringify(v, (_k, x) => (x instanceof Uint8Array ? `<${x.length} bytes>` : x))?.slice(0, 260);
 
-setAdapterHost({ extensionPath: path.join(here, 'plugin', 'ext'), log: (m) => console.log('  log:', m.slice(0, 200)) });
+setAdapterHost({ extensionPath: path.join(here, '..', 'dist', 'ext'), log: (m) => console.log('  log:', m.slice(0, 200)) });
 
 async function main() {
   await activate(createExtensionContext());

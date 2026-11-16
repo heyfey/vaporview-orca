@@ -1,9 +1,17 @@
-// Builds the Orca plugin into build/plugin. Run `npm run build:vaporview` one time first.
+// Builds the Orca plugin. Run `npm run build:vaporview` one time first.
 //
-//   build/plugin/orca-plugin.json
-//   build/plugin/worker.js          Orca worker: src/worker + the vaporview extension code
-//   build/plugin/ext/               the files that the vaporview extension code reads at run time
+// The plugin is the repository itself: Orca installs the files of a git commit, with no build.
+// So the built files are in git, in dist/, and the manifest at the root points to them.
+//
+//   orca-plugin.json          the manifest. The build writes its `settings` list.
+//   dist/worker.js            Orca worker: src/worker + the vaporview extension code
+//   dist/editor.html, .js     the editor page (the vaporview webview)
+//   dist/panel.html, .js      the sidebar panel
+//   dist/ext/                 the files that the vaporview extension code reads at run time
 //     package.json, media/, dist/worker.js (parser thread), dist/webview.js, target/.../filehandler.wasm
+//
+// The build also makes build/plugin: a copy of only the files that Orca needs (the manifest,
+// dist/, and the pictures). Load that folder as a development plugin.
 import * as esbuild from 'esbuild';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -12,7 +20,8 @@ import { ttfToWoff, woffTables } from './woff.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const vv = path.join(root, 'vaporview');
-const out = path.join(root, 'build', 'plugin');
+const out = path.join(root, 'dist');
+const stage = path.join(root, 'build', 'plugin');
 const ext = path.join(out, 'ext');
 const headless = process.argv.includes('--headless');
 
@@ -45,6 +54,14 @@ const nodeBundle = {
   nodePaths: [path.join(vv, 'node_modules')],
 };
 
+// The test bundle of the vaporview core. It uses the files in dist/ext, so it needs a build first.
+if (headless) {
+  if (!fs.existsSync(path.join(ext, 'dist', 'worker.js'))) { console.error('dist/ is not built. Run: npm run build'); process.exit(1); }
+  await esbuild.build({ ...nodeBundle, entryPoints: [path.join(root, 'test', 'headless.ts')], outfile: path.join(root, 'build', 'headless.mjs') });
+  console.log('built build/headless.mjs');
+  process.exit(0);
+}
+
 fs.rmSync(out, { recursive: true, force: true });
 
 // Files that the vaporview extension code reads at run time.
@@ -67,12 +84,6 @@ await Promise.all([
     outfile: path.join(ext, 'dist', 'webview.js'),
   }),
 ]);
-
-if (headless) {
-  await esbuild.build({ ...nodeBundle, entryPoints: [path.join(root, 'test', 'headless.ts')], outfile: path.join(root, 'build', 'headless.mjs') });
-  console.log('built build/headless.mjs');
-  process.exit(0);
-}
 
 const frameBundle = { bundle: true, platform: 'browser', format: 'iife', target: ['es2022'], logLevel: 'warning' };
 await Promise.all([
@@ -107,8 +118,6 @@ copy(path.join(root, 'src', 'frame', 'orca-theme.css'), path.join(out, 'orca-the
 copy(path.join(root, 'src', 'frame', 'panel.css'), path.join(out, 'panel.css'));
 // Geist is the interface font of Orca. A plugin page cannot load it from Orca.
 copy(path.join(root, 'assets', 'fonts'), path.join(out, 'fonts'));
-// The cover and the screenshot of the plugin page. The manifest names them.
-copy(path.join(root, 'docs', 'images', 'overview.png'), path.join(out, 'images', 'overview.png'));
 // The manifest. The settings come from the vaporview package.json, so the two stay the same.
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'orca-plugin.json'), 'utf8'));
 const vvPackage = JSON.parse(fs.readFileSync(path.join(vv, 'package.json'), 'utf8'));
@@ -134,10 +143,16 @@ for (const group of Array.isArray(configuration) ? configuration : [configuratio
     settings.push(setting);
   }
 }
-// The settings of the plugin itself come first, then the settings of vaporview.
-manifest.contributes.settings = [...(manifest.contributes.settings ?? []), ...settings];
-fs.writeFileSync(path.join(out, 'orca-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');
-copy(path.join(root, 'LICENSE'), path.join(out, 'LICENSE'));
+// The settings of the plugin itself come first, then the settings of vaporview. The manifest is
+// in git, so the build writes it only when the list changes.
+const OWN_SETTINGS = ['treeIcons'];
+const own = (manifest.contributes.settings ?? []).filter((s) => OWN_SETTINGS.includes(s.key));
+manifest.contributes.settings = [...own, ...settings];
+const manifestText = JSON.stringify(manifest, null, 2) + '\n';
+if (manifestText !== fs.readFileSync(path.join(root, 'orca-plugin.json'), 'utf8')) {
+  fs.writeFileSync(path.join(root, 'orca-plugin.json'), manifestText);
+  console.log('orca-plugin.json: the settings list changed');
+}
 
 // The editor page is the vaporview webview page. Orca puts it after its own <head>, so the
 // page here has no <html> and <head> elements. The start code loads the vaporview webview.
@@ -156,5 +171,14 @@ fs.writeFileSync(path.join(out, 'editor.html'), [
 ].join('\n'));
 fs.writeFileSync(path.join(out, 'panel.html'), '<link rel="stylesheet" href="ext/codicons/codicon.css">\n<link rel="stylesheet" href="panel.css">\n<body>\n<script src="panel.js"></script>\n</body>\n');
 
+// The folder for a development load: only the files that Orca needs.
+fs.rmSync(stage, { recursive: true, force: true });
+copy(path.join(root, 'orca-plugin.json'), path.join(stage, 'orca-plugin.json'));
+copy(path.join(root, 'LICENSE'), path.join(stage, 'LICENSE'));
+copy(out, path.join(stage, 'dist'));
+for (const image of [manifest.cover?.path, ...(manifest.screenshots ?? []).map((s) => s.path)]) {
+  if (image) { copy(path.join(root, image), path.join(stage, image)); }
+}
+
 const size = (f) => (fs.statSync(path.join(out, f)).size / 1024).toFixed(0) + ' KiB';
-console.log(`built build/plugin: worker.js ${size('worker.js')}, ext/dist/webview.js ${size('ext/dist/webview.js')}, editor.js ${size('editor.js')}, panel.js ${size('panel.js')}`);
+console.log(`built dist: worker.js ${size('worker.js')}, ext/dist/webview.js ${size('ext/dist/webview.js')}, editor.js ${size('editor.js')}, panel.js ${size('panel.js')}`);
