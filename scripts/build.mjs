@@ -8,6 +8,7 @@ import * as esbuild from 'esbuild';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ttfToWoff, woffTables } from './woff.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const vv = path.join(root, 'vaporview');
@@ -81,8 +82,27 @@ await Promise.all([
 ]);
 
 // Assets of the webview.
-copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'), path.join(ext, 'codicons', 'codicon.css'));
-copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf'), path.join(ext, 'codicons', 'codicon.ttf'));
+// The icon font of VS Code. The Orca plugin directory accepts no TTF file, so the build packs the
+// font as WOFF (the same tables, compressed) and checks that each table comes back unchanged.
+{
+  const codicons = path.join(vv, 'node_modules', '@vscode', 'codicons');
+  const ttf = fs.readFileSync(path.join(codicons, 'dist', 'codicon.ttf'));
+  const woff = ttfToWoff(ttf);
+  const back = woffTables(woff);
+  for (let i = 0; i < ttf.readUInt16BE(4); i++) {
+    const at = 12 + i * 16, offset = ttf.readUInt32BE(at + 8), length = ttf.readUInt32BE(at + 12);
+    const tag = ttf.toString('latin1', at, at + 4);
+    if (!back.get(tag)?.equals(ttf.subarray(offset, offset + length))) { throw new Error(`codicon.woff: table ${tag} differs from the TTF file`); }
+  }
+  fs.mkdirSync(path.join(ext, 'codicons'), { recursive: true });
+  fs.writeFileSync(path.join(ext, 'codicons', 'codicon.woff'), woff);
+  const css = fs.readFileSync(path.join(codicons, 'dist', 'codicon.css'), 'utf8');
+  const fontUrl = /url\("\.\/codicon\.ttf[^"]*"\) format\("truetype"\)/;
+  if (!fontUrl.test(css)) { throw new Error('codicon.css: the font URL has a new form'); }
+  fs.writeFileSync(path.join(ext, 'codicons', 'codicon.css'), css.replace(fontUrl, 'url("./codicon.woff") format("woff")'));
+  // The icons have the license CC BY 4.0, which asks for the license text with each copy.
+  copy(path.join(codicons, 'LICENSE'), path.join(ext, 'codicons', 'LICENSE'));
+}
 copy(path.join(root, 'src', 'frame', 'orca-theme.css'), path.join(out, 'orca-theme.css'));
 copy(path.join(root, 'src', 'frame', 'panel.css'), path.join(out, 'panel.css'));
 // Geist is the interface font of Orca. A plugin page cannot load it from Orca.

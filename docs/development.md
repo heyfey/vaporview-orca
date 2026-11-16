@@ -188,8 +188,9 @@ The limits that a person meets most. [feature-parity.md](feature-parity.md) has 
   (`assets/fonts/Geist-OFL.txt`).
 - `src/frame/lucide-icons.ts`: icon shapes of the lucide icon set, under the ISC license. The
   header of the file has the notice. `scripts/update-icons.mjs` makes the file.
-- The build copies the icon font of VS Code (`@vscode/codicons`) from the submodule into
-  `build/plugin`.
+- The build takes the icon font of VS Code (`@vscode/codicons`, license CC BY 4.0) from the
+  submodule. It packs the font as a WOFF file (`scripts/woff.mjs`), because the Orca plugin
+  directory accepts no TTF file, and it copies the license text.
 
 ## Documents to keep current
 

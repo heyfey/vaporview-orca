@@ -4,7 +4,8 @@ Each feature of vaporview, and its state in the Orca plugin. Update this file wi
 
 - vaporview reference: submodule `vaporview/`, commit `7b63f84` (v1.6.1).
 - PR numbers refer to [orca-pr-candidates.md](orca-pr-candidates.md). Design reasons are in [architecture.md](architecture.md).
-- Last update: 2026-11-15, Orca 1.4.259 on Windows, waveform file `test/data/tpu.vcd` in a WSL folder.
+- Last update: 2026-11-16, Orca 1.4.259 on Windows, waveform file `test/data/tpu.vcd` in a WSL folder.
+- Also run by hand on macOS (2026-11-16), with the build of the Windows machine. No problem was reported.
 
 ## Columns
 
