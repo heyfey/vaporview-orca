@@ -54,7 +54,8 @@ const MENU_ICONS: Record<string, string> = {
   'vaporview.addAllInScopeShallow': 'list-plus',
   'vaporview.addAllInScopeRecursive': 'list-tree',
   'vaporview.removeAllInScope': 'list-x',
-  'vaporview.showInViewer': 'eye',
+  // "Show in Viewer" and "Show in Netlist View" have one icon. Orca uses it for "Reveal active workspace".
+  'vaporview.showInViewer': 'crosshair',
   'vaporview.copyName': 'copy',
   'vaporview.reloadFile': 'refresh-cw',
   // viewer: signal
@@ -68,7 +69,7 @@ const MENU_ICONS: Record<string, string> = {
   'vaporview.decreaseVerticalScale': 'zoom-out',
   'vaporview.resetVerticalScale': 'rotate-ccw',
   'vaporview.removeSignal': 'trash',
-  'vaporview.showInNetlistView': 'locate',
+  'vaporview.showInNetlistView': 'crosshair',
   'vaporview.copyValueAtMarker': 'clipboard-copy',
   'vaporview.renameSignalGroup': 'pencil',
   'vaporview.ungroupSignals': 'ungroup',
@@ -95,8 +96,11 @@ const MENU_ICONS: Record<string, string> = {
   'vaporview.disableAnimations': 'zap-off',
 };
 
-/** Items that delete. Orca shows them in red. */
-const DANGER_COMMANDS = new Set(['vaporview.removeSignal', 'vaporview.deleteGroup', 'vaporview.removeSeparator']);
+/** Items that remove or delete. Orca shows such items in red. */
+const DANGER_COMMANDS = new Set([
+  'vaporview.removeSignal', 'vaporview.deleteGroup', 'vaporview.removeSeparator',
+  'vaporview.removeSelectedNetlist', 'vaporview.removeAllInScope',
+]);
 
 /** A VS Code key such as `ctrl+r` as Orca shows it: `Ctrl+R`, and with symbols on macOS. */
 export function formatShortcut(key: string, mac: boolean): string {

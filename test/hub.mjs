@@ -94,16 +94,20 @@ check(hello2.docKey === hello.docKey && hello2.state?.zoomRatio === 1, 'a new fr
 check((await req('editor.poll', { docKey: hello.docKey, instance: 'f1' })).stale === true, 'the old frame is told that it is stale');
 
 // Menus: the worker selects the items from the vaporview package.json.
+const signalMenuIcon = () => 'crosshair';
 check(variable.inline.some((b) => b.command === 'vaporview.addVariable' && b.icon === 'add'), 'a variable row has the inline "add" button');
 const treeMenu = (await req('menu.tree', { id: variable.id })).items;
 check(treeMenu.some((m) => m.title === 'Add Selected') && !treeMenu.some((m) => m.title?.startsWith('Add All Variables')) && !treeMenu.some((m) => m.title === 'Add Variable by Name...'), `tree menu of a variable (${treeMenu.filter((m) => m.kind === 'item').map((m) => m.title).join(', ')})`);
 const scopeMenu = (await req('menu.tree', { id: top.items[0].id })).items;
 check(scopeMenu.some((m) => m.title === 'Add All Variables in Scope (Recursive)'), 'tree menu of a scope has "Add All Variables in Scope"');
+check(treeMenu.find((m) => m.title === 'Remove Selected')?.danger === true && scopeMenu.find((m) => m.title === 'Remove All Variables in Scope')?.danger === true && !treeMenu.find((m) => m.title === 'Add Selected')?.danger, 'tree menu: the two remove items are delete items');
+check(treeMenu.find((m) => m.title === 'Show in Viewer')?.icon === signalMenuIcon(), 'tree menu and viewer menu use one icon for "show in the other view"');
 const signalMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'signal', width: 8, type: 'Wire' } })).items;
 const format = signalMenu.find((m) => m.kind === 'submenu' && m.label === 'Format Values');
 check(!!format && format.items.some((m) => m.title === 'Hexadecimal') && signalMenu.some((m) => m.title === 'Remove Variable'), `viewer menu of a signal (${signalMenu.filter((m) => m.kind !== 'separator').map((m) => m.title ?? m.label + ' >').join(', ')})`);
 check(signalMenu.find((m) => m.title === 'Remove Variable')?.danger === true && signalMenu.find((m) => m.title === 'Show in Netlist View')?.shortcut === 'Ctrl+R', 'viewer menu: "Remove Variable" is a delete item, "Show in Netlist View" shows its key');
 check(signalMenu.find((m) => m.label === 'Color')?.items.find((m) => m.title === 'Color 1')?.shortcut === '1', 'a submenu item shows its key');
+check(signalMenu.find((m) => m.title === 'Show in Netlist View')?.icon === signalMenuIcon(), 'viewer menu: "Show in Netlist View" has the same icon');
 const bitMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'signal', width: 1 } })).items;
 check(!bitMenu.some((m) => m.label === 'Format Values') && !bitMenu.some((m) => m.title === 'New Signal From Bit Range...'), 'viewer menu of a 1-bit signal has no "Format Values"');
 const rulerMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'ruler', rulerLines: true } })).items;

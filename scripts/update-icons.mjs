@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const NAMES = [
   // panel controls
-  'search', 'x', 'plus', 'eye', 'refresh-cw', 'chevron-right', 'folder', 'file',
+  'search', 'x', 'plus', 'crosshair', 'refresh-cw', 'chevron-right', 'folder', 'file',
   // scopes
   'cpu', 'list-checks', 'braces', 'play', 'git-fork', 'network', 'combine', 'shapes', 'unplug', 'package',
   // variables
@@ -17,7 +17,7 @@ const NAMES = [
   // menus
   'minus', 'list-plus', 'list-tree', 'list-x', 'copy', 'clipboard-copy', 'timer', 'ruler', 'mouse', 'eye-off', 'paint-bucket',
   'square-dashed', 'zap', 'zap-off', 'hash', 'chart-line', 'trending-up', 'trending-down', 'palette', 'unfold-vertical', 'tag',
-  'zoom-in', 'zoom-out', 'rotate-ccw', 'trash', 'locate', 'pencil', 'ungroup', 'group', 'folder-plus', 'separator-horizontal',
+  'zoom-in', 'zoom-out', 'rotate-ccw', 'trash', 'pencil', 'ungroup', 'group', 'folder-plus', 'separator-horizontal',
   'split', 'audio-waveform', 'grid-3x3',
 ];
 

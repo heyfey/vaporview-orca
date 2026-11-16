@@ -30,7 +30,7 @@ const FROM_CODICON: Record<string, string> = {
   'symbol-parameter': 'list-ordered',     // enum
   // commands
   'add': 'plus',
-  'inspect': 'eye',
+  'inspect': 'crosshair',                 // "Show in Viewer". Orca uses this icon for "Reveal active workspace".
   'search': 'search',
   'sync': 'refresh-cw',
   'close': 'x',
