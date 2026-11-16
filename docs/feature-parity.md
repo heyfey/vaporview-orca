@@ -61,7 +61,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Context menu of the ruler | Native VS Code menu | Tweaked | yes | Orca (events) | Same method |
 | Context menu of a group or separator | Native VS Code menu | Tweaked | yes | no | Same method |
 | Remove variable | Menu | Same | yes | Orca (events) | |
-| Show in netlist view | Menu, Ctrl+R | Same | yes | no | The panel opens the parents of the item and selects it |
+| Show in netlist view | Menu, Ctrl+R | Tweaked | yes | Orca | The panel opens the parents of the item and selects it. Tested by hand. It works only when the Vaporview panel shows in the sidebar: a plugin cannot make Orca show its panel. VS Code shows the tree view itself. PR-11 |
 | Copy name, copy value at marker | Menu | Tweaked | yes | no | The worker has no clipboard, so the page writes the text. The same clipboard path works for the WaveDrom copy. |
 | Value formats: binary, decimal, signed, hex, octal, base64, float, BFloat16, TensorFloat32, ASCII, epoch time, enum | Submenu | Same | yes | Orca (events) | "Decimal (Unsigned)" tested |
 | Value formats: fixed point, signed fixed point | Asks for the offset in an input box | Blocked | no | | Orca has no input prompt. The menu does not show the item. PR-7 (deferred) |

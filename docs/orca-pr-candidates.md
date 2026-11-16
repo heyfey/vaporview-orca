@@ -38,6 +38,7 @@ Changes to propose to Orca (`stablyai/orca`) for the limits in [architecture.md]
 | PR-8 | Toast in the Orca window for a plugin (information, success, warning, error) | Medium. vaporview messages get the Orca look, and they show when the panel is closed. | High. Each plugin has short results and errors to show. | Not yet estimated | Not yet known | Not yet known |
 | PR-9 | Orca look for an HTML panel: more style variables (sidebar color, interface font) and the Orca style sheet for rows, fields, and scroll bars. Or a native `Tree` with a context menu, row buttons, and more than 2000 items. | Medium. The panel copies the Orca values by hand and must follow each Orca change. | High. Each HTML panel has the same problem. | Not yet estimated | Not yet known | Not yet known |
 | PR-10 | A custom editor can handle a key with Ctrl or Cmd itself, before the Orca shortcuts | Medium. Ctrl+0 (zoom to fit) runs the Orca "zoom reset" in place of the viewer command. | High. Each editor with its own shortcuts (find, zoom, save variants). | Not yet estimated | Not yet known | Not yet known |
+| PR-11 | A worker can show its panel in the sidebar, and give it the keyboard focus | Medium. "Show in Netlist View" and Ctrl+F (search) need the panel in front. | High. Each plugin with a panel and an editor. Three open Orca issues ask for parts of it. | Not yet estimated | Not yet known | Not yet known |
 | | Workspace id for frames | | | | | Done in host API 1.7 |
 
 Recommended order:
@@ -242,6 +243,21 @@ this purpose, so the fit with the use model of the plugin is not confirmed.
 Related, not ours: Orca issue #40813 asks for a way to move the keyboard focus between the editor
 tab and the panel of a plugin. The plugin has the same problem: Ctrl+F in the viewer opens the
 search in the panel, but the search field does not get the focus.
+
+## PR-11: a worker shows its panel
+
+- **Today.** A worker cannot make Orca show its panel. `commands.run` has `sidebar.right.toggle`,
+  which only opens or closes the sidebar. Orca has the function: the CLI command
+  `orca plugin open <plugin-key> --panel <id>` shows a panel (`plugins.open` in
+  `src/main/runtime/rpc/methods/plugins/plugin-view.ts`), but it is not in the plugin API.
+- **Effect on the plugin.** "Show in Netlist View" does nothing that the person can see when a
+  different sidebar panel is in front. In VS Code, `TreeView.reveal` shows the tree view first.
+- **Proposal.** `panels.show({ panel, focus?: boolean })` for the worker, on top of the existing
+  `plugins.open`. With `focus`, it also gives the keyboard focus to the panel.
+- **Related open Orca issues.** #38785 (a shortcut to focus a plugin panel in the right sidebar),
+  #40813 (move the keyboard focus between the editor tab and the panel), #42632 (keep a panel
+  alive when a different sidebar tab shows). No issue asks for a worker method that shows a panel.
+- **Backward compatible.** A new method.
 
 ## PR-5: keep a hidden frame alive
 
