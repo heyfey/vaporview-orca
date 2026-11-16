@@ -39,6 +39,7 @@ Changes to propose to Orca (`stablyai/orca`) for the limits in [architecture.md]
 | PR-9 | Orca look for an HTML panel: more style variables (sidebar color, interface font) and the Orca style sheet for rows, fields, and scroll bars. Or a native `Tree` with a context menu, row buttons, and more than 2000 items. | Medium. The panel copies the Orca values by hand and must follow each Orca change. | High. Each HTML panel has the same problem. | Not yet estimated | Not yet known | Not yet known |
 | PR-10 | A custom editor can handle a key with Ctrl or Cmd itself, before the Orca shortcuts | Medium. Ctrl+0 (zoom to fit) runs the Orca "zoom reset" in place of the viewer command. | High. Each editor with its own shortcuts (find, zoom, save variants). | Not yet estimated | Not yet known | Not yet known |
 | PR-11 | A worker can show its panel in the sidebar, and give it the keyboard focus | Medium. "Show in Netlist View" and Ctrl+F (search) need the panel in front. | High. Each plugin with a panel and an editor. Three open Orca issues ask for parts of it. | Not yet estimated | Not yet known | Not yet known |
+| PR-12 | One tab for a file of a custom editor: `editor.open` shows the tab that is open in a different tab group, or the editor declares "one tab for each file" | Low to medium. Two tabs of one waveform in a split view. | Medium. Editors with one live view for each file. | Not yet estimated | Not yet known | Not yet known |
 | | Workspace id for frames | | | | | Done in host API 1.7 |
 
 Recommended order:
@@ -258,6 +259,17 @@ search in the panel, but the search field does not get the focus.
   #40813 (move the keyboard focus between the editor tab and the panel), #42632 (keep a panel
   alive when a different sidebar tab shows). No issue asks for a worker method that shows a panel.
 - **Backward compatible.** A new method.
+
+## PR-12: one tab for a file of a custom editor
+
+- **Today.** `editor.open` uses the open tab of a file only when that tab is in the tab group
+  that has the focus. With the focus in a different group of a split view, Orca opens a second
+  tab for the same file. The person can also do this by hand.
+- **Effect on the plugin.** vaporview has one view for each waveform. The plugin gives the
+  waveform to the newest tab, and the older tab shows a message with a "Show here" button.
+- **Proposal.** A property of a custom editor in the manifest, in the style of the VS Code option
+  `supportsMultipleEditorsPerDocument: false`: Orca shows the open tab and makes no second tab.
+- **Backward compatible.** A new optional property.
 
 ## PR-5: keep a hidden frame alive
 

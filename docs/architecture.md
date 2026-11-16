@@ -6,7 +6,7 @@ behind each difference, and the change to propose to Orca for that limit.
 - vaporview source: submodule `vaporview/`, upstream commit `7b63f84` (v1.6.1).
 - Orca source read: `stablyai/orca` commit `cbd50af5be` (host API 1.9).
 - Orca tested: installed desktop app 1.4.255 on Windows (host API 1.4). See [orca-test-results.md](orca-test-results.md).
-- PR candidates (PR-1 to PR-11): see [orca-pr-candidates.md](orca-pr-candidates.md).
+- PR candidates (PR-1 to PR-12): see [orca-pr-candidates.md](orca-pr-candidates.md).
 - Status of each vaporview feature: see [feature-parity.md](feature-parity.md).
 
 ## Scope of the first prototype

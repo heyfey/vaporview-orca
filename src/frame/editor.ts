@@ -71,6 +71,7 @@ function status(text: string, isError = false, action?: { label: string; run: ()
 }
 
 const CLOSED_TEXT = 'This waveform is closed.';
+const OTHER_TAB_TEXT = 'This waveform shows in a different tab.';
 
 /** The key of a keyboard event in the form that a VS Code keybinding uses, for example `ctrl+0`. */
 function chordOf(e: KeyboardEvent): string {
@@ -218,7 +219,13 @@ async function main(): Promise<void> {
         await new Promise((r) => setTimeout(r, 1000));
         continue;
       }
-      if (answer.stale) { closed = true; return; }
+      // A newer page shows this waveform (a second tab in a split view). vaporview has one view for
+      // each waveform, so this page stops. The person can move the waveform back to this tab.
+      if (answer.stale) {
+        closed = true;
+        closeMenu();
+        return status(OTHER_TAB_TEXT, false, { label: 'Show here', run: () => location.reload() });
+      }
       // The worker started again and does not know this page. A new page gets a new document.
       if (answer.restart) { closed = true; location.reload(); return; }
       if (answer.closed) { closed = true; closeMenu(); return status(CLOSED_TEXT, false, { label: 'Open again', run: () => location.reload() }); }
