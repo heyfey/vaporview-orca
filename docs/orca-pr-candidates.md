@@ -262,22 +262,45 @@ search in the panel, but the search field does not get the focus.
 
 ## PR-12: one tab for a file of a custom editor
 
-- **Today.** `editor.open` uses the open tab of a file only when that tab is in the tab group
-  that has the focus. With the focus in a different group of a split view, Orca opens a second
-  tab for the same file. The person can also do this by hand.
-- **Effect on the plugin.** vaporview has one view for each waveform. The plugin gives the
-  waveform to the newest tab, and the older tab shows a message with a "Show here" button.
-- **Proposal.** A property of a custom editor in the manifest, in the style of the VS Code option
-  `supportsMultipleEditorsPerDocument: false`: Orca shows the open tab and makes no second tab.
-  Or an option of `editor.open` that shows the tab of the file in whatever tab group it is. Orca
-  has the parts: its own open function takes a target group
-  (`src/renderer/src/store/slices/editor/opening/open-file-action.ts`), but `editor.open` of the
-  plugin API gives it no option.
-- **The plugin today.** Before it calls `editor.open`, the worker asks the page of the waveform if
-  it is alive. If a page answers, the waveform shows in some tab group, and the worker opens
-  nothing. The worker cannot give that tab the focus, and it cannot find a tab that is behind a
-  different tab.
-- **Backward compatible.** A new optional property.
+This candidate fixes the case "the waveform is open in tab group B, the focus is in group A, and
+the person opens the same waveform again".
+
+- **Today, from the Orca source.** When Orca opens a file, it selects one target tab group: the
+  active group of the workspace (`resolveEditorOpenTargetGroupId` in
+  `src/renderer/src/store/slices/editor/tabs/editor-open-target-group.ts`, line 58). Then it looks
+  for an open tab of the file in that group only (`findTabForEntityInGroup` in
+  `src/renderer/src/store/slices/editor/tabs/workspace-editor-item.ts`, lines 37 to 39). If the
+  tab is in a different group, Orca finds none and makes a new tab. The open function of Orca can
+  take a target group, but `editor.open` of the plugin API passes none
+  (`src/renderer/src/components/plugins/view/plugin-view-host-actions.ts`, line 61).
+- **Effect on the plugin.** vaporview has one view for each waveform. With two tabs, the plugin
+  gives the waveform to the newest tab. The older tab shows "This waveform shows in a different
+  tab" with a "Show here" button.
+- **Proposal, two possible forms.**
+  1. A property of a custom editor in the manifest, in the style of the VS Code option
+     `supportsMultipleEditorsPerDocument: false`: for such an editor, Orca looks for the open tab
+     in all tab groups of the workspace, and shows it.
+  2. An option of `editor.open` with the same effect for one call.
+- **Backward compatible.** A new optional property or option. The default stays as today.
+- **Measured in a split view (2026-11-15).** With the same steps, Orca made a second tab in two
+  runs and used the open tab in one run. The result depends on which group Orca records as the
+  active one at that moment.
+
+### Open question for the Orca maintainers: a silent page in a split view
+
+In a split view, the page of a custom editor in the tab group that does not have the focus stopped
+all contact with the worker. It sent no `plugin.request` and it did not answer a `panels.post`. The
+contact stopped at the moment when the other group got the focus (three runs, plugin log).
+
+I found no rule in the Orca source that explains it. The frame of the group stays mounted
+(`src/renderer/src/components/tab-group/TabGroupPanel.tsx`, line 395), the frame key does not
+depend on the focus (`PluginCustomEditorFrame.tsx`, line 160), and the frame host and the panel
+bridge have no focus condition. With one tab group, a page with no focus keeps its contact.
+
+Effect on the plugin: a command from the netlist tree does not reach a waveform that shows in the
+group with no focus. The worker then asks Orca to show the tab, and the page starts again. The
+plugin has no workaround for this. Three workarounds were tried and removed, because each one was
+built on an unproven guess.
 
 ## PR-5: keep a hidden frame alive
 

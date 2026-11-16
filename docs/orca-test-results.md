@@ -46,6 +46,8 @@ $ORCA plugin dev unload 'C:\Users\<user>\orca-plugin-dev\vaporview-probe' --json
 | 18 | Does a development plugin stay loaded after an Orca update? | Yes. The plugin ran after the update to 1.4.259 with no new approval. | |
 | 19 | Does a frame get the workspace id? | No (1.4.259). Only the worker gets `workspaceId` from `workspace.readContext`. A panel or editor frame gets `displayName` and `branch`. | The worker must find the workspace itself. |
 | 20 | Can the CLI take a screenshot while the Orca window shows? | `plugin shot --panel` and `plugin shot --editor` work. The editor shot starts a new frame and captures it at its first paint, so it shows the load text. | For the editor, use the `debug.snapshot` request of the plugin. |
+| 21 | Split view: does `editor.open` use a tab that is open in a different tab group? | Not always (1.4.259, by hand). In two runs Orca made a second tab in the group with the focus, in one run it used the open tab. The source shows that Orca looks only in the active group. | No workaround in the plugin. PR-12. |
+| 22 | Split view: does a page in the group with no focus keep its contact with the worker? | No (1.4.259, by hand, three runs). It sent no request and answered no post from the moment when the other group got the focus. The cause is not known. | A command from the tree makes the page start again. Open question for the Orca maintainers. |
 
 Row 14 on Orca 1.4.259: `workspace.readContext` and `workspace.changed` give `workspaceId` to the worker.
 

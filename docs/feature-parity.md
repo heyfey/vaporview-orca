@@ -33,7 +33,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Restore after a restart | VS Code restores the tab and its state | Same | yes | Orca | Tested with a restart of the plugin worker, not of Orca |
 | Reload file | "Reload File" command | Same | yes | no | In the tree menu. The button in the editor title is not possible (no such contribution in Orca). |
 | Auto reload | Check box in the control bar | Same | yes | no | For a file on a `\\wsl.localhost` path the plugin reads the change time one time each second, because Node gets no change events there |
-| Same file in two tabs of a split view | Not possible. VS Code has one editor for each waveform (`supportsMultipleEditorsPerDocument: false`). | Tweaked | yes | Node | If a tab shows the waveform, also in a different tab group, "Open Waveform" and a click on the list row open no second tab. The plugin cannot move the keyboard focus to that tab. If the person opens the file a second time by hand, only the newest tab shows the waveform, and the older tab shows "This waveform shows in a different tab" with a "Show here" button. PR-12 |
+| Same file in two tabs of a split view | Not possible. VS Code has one editor for each waveform (`supportsMultipleEditorsPerDocument: false`). | Tweaked | yes | Orca | Orca looks for the open tab of a file only in the active tab group, so it can make a second tab when the waveform shows in a different group. Then only the newest tab shows the waveform, and the older tab shows "This waveform shows in a different tab" with a "Show here" button. The plugin has no check of its own (three attempts were removed, see PR-12). PR-12 |
 | Same file in two workspaces | Not applicable | Tweaked | yes | no | Planned: one tab for each workspace. Not tested. |
 
 ## File formats
@@ -176,6 +176,7 @@ Messages 9 to 21 cannot occur now. If one occurs later, it shows in the panel.
 | D6 | Ctrl+0 (zoom to fit), which Orca takes for its "zoom reset" | Decided 2026-11-15: leave it. "Zoom to fit" stays on the button of the control bar. The fix is PR-10. | |
 | D7 | Ctrl+F opens the search in the panel, but the field has no keyboard focus | Decided 2026-11-15: leave it, the person clicks the field. Wait for Orca issue #40813, and add our case to it. | |
 | D8 | "Show in Netlist View" when the Vaporview panel is not in front | Decided 2026-11-15: leave it. It works when the panel shows. No helper program. The fix is PR-11. | |
+| D9 | The same waveform opened again from a different tab group | Decided 2026-11-16: no workaround in the plugin. If Orca makes a second tab, the older tab shows the message with "Show here". The fix is PR-12. | |
 
 ## Checks that need a person
 

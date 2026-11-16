@@ -9,23 +9,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const waveform = process.argv[2] ?? path.join(here, 'data', 'tpu.vcd');
 const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vaporview-orca-'));
 const handlers = new Map();
-let livePage = null;   // the instance of the page that answers pings
 const posts = [];
 const calls = [];
 const context = { workspaceId: 'ws1', displayName: 'test', branch: 'main' };
 const orca = {
   api: { major: 1, minor: 9 },
   log: (m) => { if (!/\[adapter\]|theme/.test(m)) console.log('   log:', String(m).slice(0, 160)); },
-  panels: {
-    handle: (name, fn) => handlers.set(name, fn),
-    post: (event, payload) => {
-      posts.push({ event, payload });
-      // The page that is alive answers a ping of the worker.
-      if (event === 'editor.ping' && payload.instance === livePage) {
-        setTimeout(() => handlers.get('editor.pong')({ docKey: payload.docKey, instance: payload.instance, id: payload.id }, {}), 5);
-      }
-    },
-  },
+  panels: { handle: (name, fn) => handlers.set(name, fn), post: (event, payload) => posts.push({ event, payload }) },
   events: { on: () => ({ dispose() {} }) },
   host: {
     has: () => true,
@@ -72,7 +62,6 @@ check(session.fileName === waveform, 'session file names the waveform file');
 // The editor frame starts.
 const frameContext = { displayName: context.displayName, branch: context.branch };   // a frame gets no workspace id
 const hello = await req('editor.hello', { instance: 'f1', fileName: session.fileName, session, workspace: frameContext });
-livePage = 'f1';
 check(hello.docKey === opened.docKey, 'frame hello finds the open document');
 const poll = async () => JSON.parse((await req('editor.poll', { docKey: hello.docKey, instance: 'f1' })).messages);
 await req('editor.send', { docKey: hello.docKey, instance: 'f1', messages: [{ command: 'ready' }] });
@@ -88,7 +77,8 @@ const variable = children.items.find((i) => !i.expandable);
 check(!!variable, `scope has a variable (${variable?.label})`);
 const pending = poll();          // the live frame has a poll open
 const add = req('menu.run', { source: 'tree', id: variable.id, command: 'vaporview.addVariable' });
-messages = await pending;
+messages = await pending;        // answer of the live probe
+if (!messages.length) { messages = await poll(); }
 await add;
 check(messages.some((m) => m.command === 'add-variable'), `add gives add-variable (${messages.map((m) => m.command)})`);
 const signalId = messages.find((m) => m.command === 'add-variable').signalList[0].signalId;
@@ -100,7 +90,6 @@ check(JSON.parse(fs.readFileSync(sessionFile, 'utf8')).zoomRatio === 1, 'the wor
 
 // A second frame for the same document (the tab came back).
 const hello2 = await req('editor.hello', { instance: 'f2', fileName: session.fileName, session, workspace: frameContext });
-livePage = 'f2';
 check(hello2.docKey === hello.docKey && hello2.state?.zoomRatio === 1, 'a new frame gets the same document and the saved state');
 check((await req('editor.poll', { docKey: hello.docKey, instance: 'f1' })).stale === true, 'the old frame is told that it is stale');
 
@@ -124,22 +113,6 @@ check(!bitMenu.some((m) => m.label === 'Format Values') && !bitMenu.some((m) => 
 const rulerMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'ruler', rulerLines: true } })).items;
 check(rulerMenu.some((m) => m.title === 'Hide Ruler Lines') && !rulerMenu.some((m) => m.title === 'Show Ruler Lines'), 'viewer menu of the ruler follows the state');
 
-// A click on the row of a waveform that a page shows now must not open a second tab.
-{
-  const opensBefore = calls.filter((c) => c.method === 'editor.open').length;
-  await req('panel.select', { docKey: hello.docKey });
-  check(calls.filter((c) => c.method === 'editor.open').length === opensBefore, 'select of a waveform that shows opens no second tab');
-}
-
-{
-  // A page that does not answer the ping (its tab is hidden): Orca opens the tab.
-  const opensBefore = calls.filter((c) => c.method === 'editor.open').length;
-  livePage = null;
-  await req('panel.select', { docKey: hello.docKey });
-  livePage = 'f2';
-  check(calls.filter((c) => c.method === 'editor.open').length === opensBefore + 1, 'select of a waveform whose page does not answer opens the tab');
-}
-
 // Netlist search: the vaporview quick pick shows in the panel.
 check(top.title.some((b) => b.command === 'vaporview.searchNetlist' && b.icon === 'search'), 'the tree title has the "Search Netlist" button');
 const lastSearch = () => posts.filter((p) => p.event === 'search.update').at(-1)?.payload;
@@ -158,9 +131,10 @@ check(found?.visible === false, 'the search closes');
 // vaporview asks before it adds more than 48 signals. The plugin answers "Yes" itself.
 posts.length = 0;
 const poll2 = async () => JSON.parse((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).messages);
-const next = poll2();                  // the live frame has a poll open
+const probe = poll2();                 // the live frame has a poll open
 const addAll = req('menu.run', { source: 'tree', id: top.items[0].id, command: 'vaporview.addAllInScopeRecursive' });
-const got = await next;
+await probe;                           // the worker asks if the frame is alive
+const got = await poll2();             // the frame polls again, so it is alive
 await addAll;
 check(!posts.some((p) => p.event === 'panel.message') && got.some((m) => m.command === 'add-variable' && m.signalList.length > 48),
   `"add all in scope" adds the signals with no question (${got.filter((m) => m.command === 'add-variable').map((m) => m.signalList.length)} signals)`);
@@ -172,7 +146,6 @@ check(state.waveforms.length === 0, 'close removes the waveform');
 const afterClose = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
 check(afterClose.closed === true, 'close marks the session file');
 check((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).closed === true, 'a frame of the closed waveform is told "closed"');
-livePage = null;
 check((await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext })).closed === true, 'a new frame does not load a closed waveform');
 const again = await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext, reopen: true });
 check(!!again.docKey && again.keybindings.length === 17, 'the person can open it again, and the frame gets the keybindings');
