@@ -93,7 +93,8 @@ Rules of the adapter:
   file to change when Orca gets a byte transport (PR-6).
 
 Result: a new vaporview version needs only a submodule update, unless it uses a VS Code API that
-the adapter does not have yet. No change to vaporview was necessary for the prototype.
+the adapter does not have yet. No change to vaporview was necessary for the prototype. One upstream fix is prepared (a file
+reader for each document, see `vaporview-issue-drafts.md`).
 
 Message transport today (`FrameLink`): the frame pulls. It keeps one `editor.poll` request open,
 and the worker answers with a batch of messages. The frame sends its own messages in batches, one
