@@ -13,7 +13,9 @@ type TreeNode = {
   icon: string; color: string; tooltip: string; inline: InlineButton[];
 };
 
-// VS Code theme colors that the vaporview tree icons use. Orca has no such colors.
+// vaporview gives each kind of tree icon a VS Code theme color. The Orca file explorer has icons
+// of one color, so the panel does not use the colors. Set this to true to see them again.
+const COLORED_ICONS = false;
 const ICON_COLORS: Record<string, string> = {
   'charts.purple': '#b180d7', 'charts.green': '#89d185', 'charts.orange': '#d18616',
   'charts.yellow': '#cca700', 'charts.blue': '#3794ff', 'charts.red': '#f14c4c',
@@ -207,7 +209,7 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   const twist = el('span', 'vv-twist');
   if (node.expandable) { twist.innerHTML = CHEVRON; }
   const icon = el('span', node.icon ? `vv-node-icon codicon codicon-${node.icon}` : 'vv-node-icon');
-  if (node.color) { icon.style.color = ICON_COLORS[node.color] ?? ''; }
+  if (COLORED_ICONS && node.color) { icon.style.color = ICON_COLORS[node.color] ?? ''; }
   row.append(twist, icon, el('span', 'vv-name', node.label), el('span', 'vv-dim', node.description));
   for (const b of node.inline) {
     const button = el('button', 'vv-icon vv-inline' + (b.icon ? ` codicon codicon-${b.icon}` : ''), b.icon ? '' : b.title.slice(0, 1));
@@ -337,7 +339,7 @@ function renderSearch(s: SearchState): void {
   s.items.forEach((item, index) => {
     const row = el('div', 'vv-result');
     const icon = el('span', item.icon ? `vv-node-icon codicon codicon-${item.icon}` : 'vv-node-icon');
-    if (item.color) { icon.style.color = ICON_COLORS[item.color] ?? ''; }
+    if (COLORED_ICONS && item.color) { icon.style.color = ICON_COLORS[item.color] ?? ''; }
     const text = el('div', 'vv-result-text');
     const first = el('div', 'vv-result-line');
     first.append(el('span', 'vv-name', item.label), el('span', 'vv-dim', item.description));

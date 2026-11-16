@@ -90,7 +90,9 @@ button, input { font: inherit; }
 .vv-twist { display: inline-flex; flex: none; width: 12px; height: 12px; color: var(--orca-muted-foreground); transition: transform 0.15s; }
 .vv-twist.open { transform: rotate(90deg); }
 .vv-twist svg { width: 12px; height: 12px; }
-.vv-node-icon { flex: none; width: 16px; font-size: 14px; }
+/* Icons have one color, as the icons of the Orca file explorer. */
+.vv-node-icon { flex: none; width: 16px; font-size: 14px; color: var(--orca-muted-foreground); }
+.vv-node-row.selected .vv-node-icon, .vv-node-row:hover .vv-node-icon { color: var(--orca-foreground); }
 .vv-entry.folder::before { content: "\ea83"; font: 14px/1 codicon; color: var(--orca-muted-foreground); }
 .vv-entry.file::before { content: "\ea7b"; font: 14px/1 codicon; color: var(--orca-muted-foreground); }
 
