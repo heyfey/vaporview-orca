@@ -172,6 +172,8 @@ Messages 9 to 21 cannot occur now. If one occurs later, it shows in the panel.
 | D3 | Signal colors | Decided 2026-11-15: fixed colors for now. | |
 | D4 | Commands in the Orca command palette | (a) None. (b) A small set that needs no argument: zoom to fit, reload file, new group. | Open |
 | D5 | Messages of vaporview | Decided 2026-11-15: rows 1 and 3 hidden, row 2 adds the signals, rows 4 to 8 stay as they are. | |
+| D6 | Ctrl+0 (zoom to fit), which Orca takes for its "zoom reset" | Decided 2026-11-15: leave it. "Zoom to fit" stays on the button of the control bar. The fix is PR-10. | |
+| D7 | Ctrl+F opens the search in the panel, but the field has no keyboard focus | Decided 2026-11-15: leave it, the person clicks the field. Wait for Orca issue #40813, and add our case to it. | |
 
 ## Checks that need a person
 

@@ -173,3 +173,18 @@ user gesture.
 
 A plugin can draw its own prompt in its panel or editor frame, but then each plugin has a
 different look, and a command from the palette has no frame to draw in. I can make the PR.
+
+## 6. Comment for the open Orca issue #40813 (keyboard focus between the editor tab and the panel)
+
+Not yet posted. This is a comment on an issue of a different author, not a new issue.
+
+Same problem here, on Windows (Orca 1.4.259), in a waveform viewer plugin: a trusted worker with an
+HTML sidebar panel (a signal tree with a search field) and a custom editor (the waveform).
+
+Ctrl+F in the editor runs a worker command that shows the search field in the panel. The panel
+calls `focus()` on its input, and the field shows, but the keyboard focus stays in the editor
+frame. The person must click the field before typing.
+
+What would solve it for us: a worker method that moves the keyboard focus to a panel or to the
+custom editor of a file, for example `panels.focus({ panel })`, or an option of `editor.open` and
+of the panel open call that also gives the focus.
