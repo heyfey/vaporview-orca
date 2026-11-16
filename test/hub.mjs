@@ -6,7 +6,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const waveform = process.argv[2] ?? path.join(here, 'data', 'tpu.vcd');
+const waveform = process.argv[2] ? path.resolve(process.argv[2]) : path.join(here, 'data', 'tpu.vcd');
 const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vaporview-orca-'));
 const handlers = new Map();
 const posts = [];
@@ -157,10 +157,10 @@ check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart 
   const before = await req('tree.children', {});
   check(before.items[0].open === false, 'a node of the tree starts closed');
   await req('tree.action', { id: before.items[0].id, action: 'expand' });
-  const second = path.join(workspacePath, 'second.vcd');
+  const second = path.join(workspacePath, 'second' + path.extname(waveform));
   fs.copyFileSync(waveform, second);
   const other = await req('panel.open', { path: second });
-  const otherSession = JSON.parse(fs.readFileSync(path.join(workspacePath, '.vaporview', 'second.vcd.vaporview.json'), 'utf8'));
+  const otherSession = JSON.parse(fs.readFileSync(path.join(workspacePath, '.vaporview', path.basename(second) + '.vaporview.json'), 'utf8'));
   await req('editor.hello', { instance: 'g1', fileName: otherSession.fileName, session: otherSession, workspace: frameContext });
   check((await req('panel.state', { workspace: context })).active === other.docKey, 'the second waveform is the active one after its page starts');
   check((await req('tree.children', {})).items[0].open === false, 'the tree of the second waveform has its own open state');

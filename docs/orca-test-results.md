@@ -4,7 +4,7 @@ Date: 2026-11-14. Orca desktop app on Windows 11, worker Node 24.22.1. First run
 Second run: 1.4.259 (host API 1.9). The two runs gave the same results, except row 14.
 The workspace is a WSL folder (`\\wsl.localhost\AlmaLinux-8\...`).
 
-The test plugin is in `spike/probe`. It has a worker, an editor for `*.vvprobe.json`, and an HTML
+The test plugin is in `tools/orca-probe`. It has a worker, an editor for `*.vvprobe.json`, and an HTML
 panel. The Orca CLI drives it (`plugin dev request`, `plugin open`, `plugin logs`).
 
 ## How to run
@@ -14,7 +14,7 @@ plugin to a Windows folder.
 
 ```bash
 ORCA=/mnt/c/Users/<user>/AppData/Local/Programs/orca/resources/bin/orca.exe
-spike/sync-probe.sh                               # copy to C:\Users\<user>\orca-plugin-dev\vaporview-probe
+tools/orca-probe/sync.sh                          # copy to C:\Users\<user>\orca-plugin-dev\vaporview-probe
 $ORCA plugin dev load 'C:\Users\<user>\orca-plugin-dev\vaporview-probe' --json   # prints an approval fingerprint
 $ORCA plugin dev load '<same path>' --approve <fingerprint> --json
 $ORCA plugin dev request local.vaporview-probe state --json

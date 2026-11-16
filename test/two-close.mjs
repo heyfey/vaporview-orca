@@ -10,7 +10,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const waveform = process.argv[2] ?? path.join(here, 'data', 'tpu.vcd');
+const waveform = process.argv[2] ? path.resolve(process.argv[2]) : path.join(here, 'data', 'tpu.vcd');
 const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vaporview-orca-'));
 const handlers = new Map();
 const posts = [];

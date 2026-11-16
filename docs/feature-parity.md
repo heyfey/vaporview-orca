@@ -42,7 +42,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Feature | vaporview | Plugin | Built | Tested | Reason and Orca PR |
 |---|---|---|---|---|---|
 | VCD | `wellen` in WASM | Same | yes | Orca | |
-| FST | `wellen` in WASM | Same | yes | no | No FST test file is available |
+| FST | `wellen` in WASM | Same | yes | Node | `npm test` runs the vaporview core and the worker with `test/data/tpu.fst`. Not yet opened in Orca. |
 | GHW | `wellen` in WASM | Same | yes | no | No GHW test file is available |
 | FSDB | Native addon with Synopsys libraries | Deferred | no | | Decision on remote access first |
 | Remote viewer (Surfer server) | "Open Remote Viewer" | Deferred | no | | Decision on remote access first |

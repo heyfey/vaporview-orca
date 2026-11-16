@@ -8,9 +8,9 @@
   "scripts": {
     "build:vaporview": "cd vaporview && npm ci --no-audit --no-fund && npm run compile-wasm",
     "build": "node scripts/build.mjs",
-    "test:headless": "node scripts/build.mjs --headless && node build/headless.mjs",
+    "test:headless": "node scripts/build.mjs --headless && node build/headless.mjs && node build/headless.mjs test/data/tpu.fst",
     "sync": "bash scripts/sync-windows.sh",
-    "test:hub": "node scripts/build.mjs && node test/hub.mjs",
+    "test:hub": "node scripts/build.mjs && node test/hub.mjs && node test/hub.mjs test/data/tpu.fst",
     "test": "npm run test:when && npm run test:headless && npm run test:hub",
     "test:when": "node test/when.mjs"
   },

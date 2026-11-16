@@ -6,7 +6,7 @@ import { setAdapterHost, registry, createExtensionContext, Uri, WebviewPanel, Ca
 import { activate } from '../vaporview/src/extension_core/extension';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const waveform = process.argv[2] ?? path.join(here, '..', 'test', 'data', 'tpu.vcd');
+const waveform = process.argv[2] ? path.resolve(process.argv[2]) : path.join(here, '..', 'test', 'data', 'tpu.vcd');
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const brief = (v: unknown) => JSON.stringify(v, (_k, x) => (x instanceof Uint8Array ? `<${x.length} bytes>` : x))?.slice(0, 260);
 
