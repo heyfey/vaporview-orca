@@ -66,6 +66,8 @@ fs.rmSync(out, { recursive: true, force: true });
 
 // Files that the vaporview extension code reads at run time.
 copy(wasm, path.join(ext, 'target', 'wasm32-unknown-unknown', 'release', 'filehandler.wasm'));
+// The Rust compiler makes the WASM file executable. In the plugin it is a plain data file.
+fs.chmodSync(path.join(ext, 'target', 'wasm32-unknown-unknown', 'release', 'filehandler.wasm'), 0o644);
 copy(path.join(vv, 'media'), path.join(ext, 'media'));
 copy(path.join(vv, 'package.json'), path.join(ext, 'package.json'));
 copy(path.join(vv, 'LICENSE'), path.join(ext, 'LICENSE'));
