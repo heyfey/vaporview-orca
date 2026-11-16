@@ -25,4 +25,5 @@ In Orca, open the Vaporview panel in the right sidebar and select "Open Waveform
 - `vaporview/`: upstream vaporview as a git submodule. Changes to vaporview must be general and
   backward compatible, so that upstream can merge them.
 
-License: AGPL-3.0, the same as vaporview.
+License: AGPL-3.0, the same as vaporview. The font in `assets/fonts` is Geist, under the SIL Open
+Font License (`assets/fonts/Geist-OFL.txt`).

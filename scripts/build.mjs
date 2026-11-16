@@ -85,6 +85,8 @@ copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
 copy(path.join(vv, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf'), path.join(ext, 'codicons', 'codicon.ttf'));
 copy(path.join(root, 'src', 'frame', 'orca-theme.css'), path.join(out, 'orca-theme.css'));
 copy(path.join(root, 'src', 'frame', 'panel.css'), path.join(out, 'panel.css'));
+// Geist is the interface font of Orca. A plugin page cannot load it from Orca.
+copy(path.join(root, 'assets', 'fonts'), path.join(out, 'fonts'));
 // The manifest. The settings come from the vaporview package.json, so the two stay the same.
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'orca-plugin.json'), 'utf8'));
 const vvPackage = JSON.parse(fs.readFileSync(path.join(vv, 'package.json'), 'utf8'));

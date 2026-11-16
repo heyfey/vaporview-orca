@@ -1,45 +1,111 @@
+/* The panel copies the look of the Orca file explorer. Orca gives an HTML panel only color
+   variables (--orca-*), so the sizes below are the values of the Orca source:
+   rows: FileExplorerRow.tsx (12 px text, 4 px 8 px padding, 16 px indent, 26 px pitch)
+   field: FileExplorerNameFilter.tsx (32 px high, border, input color at 50 percent)
+   scroll bar: src/shared/styles/scrollbar-sleek.css
+   font: Geist, the interface font of Orca (assets/fonts, SIL Open Font License) */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 html, body { margin: 0; height: 100%; }
-body { font: 12px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--orca-foreground); background: var(--orca-background); }
+body {
+  font: 12px/16px 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--orca-foreground);
+  /* The Orca sidebar color is not one of the variables. `card` has the same value in the dark theme. */
+  background: var(--orca-card);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; }
+
 .vv-panel { display: flex; flex-direction: column; height: 100vh; }
-.vv-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid var(--orca-border); }
-.vv-title, .vv-section { font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; color: var(--orca-muted-foreground); }
-.vv-section { padding: 6px 8px 2px; border-top: 1px solid var(--orca-border); }
-.vv-button { font: inherit; color: var(--orca-primary-foreground); background: var(--orca-primary); border: 0; border-radius: calc(var(--orca-radius, 6px) - 2px); padding: 2px 8px; cursor: pointer; }
-.vv-icon { font: inherit; width: 20px; height: 20px; line-height: 18px; padding: 0; color: var(--orca-muted-foreground); background: transparent; border: 0; border-radius: 4px; cursor: pointer; flex: none; }
-.vv-icon:hover { background: var(--orca-accent); color: var(--orca-accent-foreground); }
-.vv-message { display: none; padding: 4px 8px; color: var(--orca-destructive); }
-.vv-message[data-level="info"] { color: var(--orca-muted-foreground); }
-.vv-message[data-level="warning"] { color: var(--orca-foreground); }
-.vv-empty { padding: 8px; color: var(--orca-muted-foreground); }
-.vv-row, .vv-node-row, .vv-entry { display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; cursor: pointer; white-space: nowrap; }
-.vv-row:hover, .vv-node-row:hover, .vv-entry:hover { background: var(--orca-accent); }
+
+/* Scroll bar of Orca ("sleek") */
+.vv-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 34%, transparent) transparent;
+}
+.vv-scroll:hover { scrollbar-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 48%, transparent) transparent; }
+.vv-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+.vv-scroll::-webkit-scrollbar-track { background: transparent; }
+.vv-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--orca-muted-foreground, #737373) 28%, transparent);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  min-height: 28px;
+}
+.vv-scroll::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 48%, transparent); }
+.vv-scroll::-webkit-scrollbar-thumb:active { background-color: color-mix(in srgb, var(--orca-foreground, #171717) 36%, transparent); }
+
+/* Titles */
+.vv-header { display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 8px 0 12px; }
+.vv-title { font-size: 13px; font-weight: 600; }
+.vv-section { display: flex; align-items: center; justify-content: space-between; padding: 10px 8px 2px 12px; font-weight: 600; border-top: 1px solid var(--orca-border); }
+.vv-section-buttons { display: flex; }
+
+/* Buttons */
+.vv-button {
+  height: 24px; padding: 0 8px; cursor: pointer; color: var(--orca-foreground); background: transparent;
+  border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 8px) - 2px);
+}
+.vv-button:hover { background: var(--orca-accent); color: var(--orca-accent-foreground); }
+.vv-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 20px; padding: 0;
+  color: var(--orca-muted-foreground); background: transparent; border: 0; border-radius: 4px; cursor: pointer; font-size: 14px; line-height: 1;
+}
+.vv-icon:hover { color: var(--orca-foreground); background: var(--orca-accent); }
+.vv-icon.codicon { font-size: 14px; }
+
+/* Text field, as "Find files" of Orca */
+.vv-field {
+  display: flex; align-items: center; gap: 4px; box-sizing: border-box; height: 32px; margin: 6px 8px; padding: 0 8px;
+  border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 8px) - 2px);
+  background: color-mix(in srgb, var(--orca-input) 50%, transparent);
+}
+.vv-field:focus-within { border-color: var(--orca-ring); box-shadow: 0 0 0 1px var(--orca-ring); }
+.vv-field input { flex: 1; min-width: 0; padding: 4px 0; color: var(--orca-foreground); background: transparent; border: 0; outline: none; }
+.vv-field input::placeholder { color: var(--orca-muted-foreground); }
+.vv-field-icon { flex: none; color: var(--orca-muted-foreground); font-size: 14px; }
+.vv-field .vv-icon { width: 16px; height: 16px; font-size: 12px; }
+
+/* Rows: list of waveforms, tree, search results, file browser */
+.vv-rows { padding: 0 4px; overflow-x: hidden; overflow-y: auto; }
+.vv-row, .vv-node-row, .vv-entry, .vv-result {
+  display: flex; align-items: center; gap: 4px; box-sizing: border-box; min-height: 24px; margin-bottom: 2px; padding: 4px 8px;
+  border-radius: 4px; white-space: nowrap; cursor: default; user-select: none;
+}
+.vv-row:hover, .vv-node-row:hover, .vv-entry:hover, .vv-result:hover { background: var(--orca-accent); }
 .vv-row.active, .vv-node-row.selected { background: var(--orca-accent); color: var(--orca-accent-foreground); }
-.vv-row.active .vv-name { font-weight: 600; }
-.vv-name { overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 70%; }
-.vv-dim { color: var(--orca-muted-foreground); overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.vv-name { flex: none; max-width: 75%; overflow: hidden; text-overflow: ellipsis; }
+.vv-dim { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--orca-muted-foreground); }
 .vv-row .vv-icon, .vv-inline { visibility: hidden; }
 .vv-row:hover .vv-icon, .vv-node-row:hover .vv-inline { visibility: visible; }
-.vv-inline.codicon { font-size: 14px; line-height: 20px; }
-.vv-node-icon { width: 16px; flex: none; font-size: 14px; }
-.vv-node-row { user-select: none; }
-.vv-list { flex: none; max-height: 35vh; overflow: auto; }
-.vv-tree { flex: 1; overflow: auto; font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; }
-.vv-twist { width: 12px; flex: none; color: var(--orca-muted-foreground); }
+.vv-list { flex: none; max-height: 30vh; }
+.vv-tree { flex: 1; min-height: 0; }
+.vv-twist { display: inline-flex; flex: none; width: 12px; height: 12px; color: var(--orca-muted-foreground); transition: transform 0.15s; }
+.vv-twist.open { transform: rotate(90deg); }
+.vv-twist svg { width: 12px; height: 12px; }
+.vv-node-icon { flex: none; width: 16px; font-size: 14px; }
+.vv-entry.folder::before { content: "\ea83"; font: 14px/1 codicon; color: var(--orca-muted-foreground); }
+.vv-entry.file::before { content: "\ea7b"; font: 14px/1 codicon; color: var(--orca-muted-foreground); }
+
+/* Messages and empty states */
+.vv-message { display: none; padding: 4px 12px; color: var(--orca-destructive); }
+.vv-message[data-level="info"] { color: var(--orca-muted-foreground); }
+.vv-message[data-level="warning"] { color: var(--orca-foreground); }
+.vv-empty { padding: 12px; text-align: center; color: var(--orca-muted-foreground); }
+
+/* File browser and search */
 .vv-browser { border-bottom: 1px solid var(--orca-border); }
-.vv-browser:empty { display: none; }
-.vv-pathbar { display: flex; gap: 4px; padding: 6px 8px; }
-.vv-input { flex: 1; min-width: 0; font: inherit; color: var(--orca-foreground); background: var(--orca-background); border: 1px solid var(--orca-border); border-radius: 4px; padding: 2px 6px; }
-.vv-input:focus { outline: 1px solid var(--orca-ring); }
-.vv-entries { max-height: 40vh; overflow: auto; }
-.vv-entry.folder::before { content: "▸"; color: var(--orca-muted-foreground); }
-.vv-entry.file { font-weight: 600; }
-.vv-section { display: flex; align-items: center; justify-content: space-between; }
-.vv-section-buttons .vv-icon.codicon { font-size: 14px; line-height: 20px; }
-.vv-search:empty { display: none; }
-.vv-search { border-bottom: 1px solid var(--orca-border); }
-.vv-search-info { padding: 0 8px 4px; color: var(--orca-muted-foreground); }
-.vv-result { display: flex; align-items: flex-start; gap: 6px; padding: 3px 8px; cursor: pointer; }
-.vv-result:hover { background: var(--orca-accent); }
-.vv-result-text { min-width: 0; flex: 1; }
-.vv-result-line { display: flex; gap: 6px; white-space: nowrap; }
-.vv-result-detail { font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
+.vv-browser:empty, .vv-search:empty { display: none; }
+.vv-entries { max-height: 40vh; }
+.vv-search-info { padding: 0 12px 4px; color: var(--orca-muted-foreground); }
+.vv-result { align-items: flex-start; }
+.vv-result-text { flex: 1; min-width: 0; }
+.vv-result-line { display: flex; gap: 6px; }
+.vv-result-detail { overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }

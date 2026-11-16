@@ -44,14 +44,16 @@ const openButton = el('button', 'vv-button', 'Open Waveform');
 header.append(title, openButton);
 const messageBar = el('div', 'vv-message');
 const browser = el('div', 'vv-browser');
-const list = el('div', 'vv-list');
+const list = el('div', 'vv-list vv-rows vv-scroll');
 const treeTitle = el('div', 'vv-section');
 const treeTitleText = el('span', '', 'Netlist');
 const treeButtons = el('span', 'vv-section-buttons');
 treeTitle.append(treeTitleText, treeButtons);
 const searchBox = el('div', 'vv-search');
-const tree = el('div', 'vv-tree');
-root.append(header, messageBar, browser, list, treeTitle, searchBox, tree);
+const tree = el('div', 'vv-tree vv-rows vv-scroll');
+const results = el('div', 'vv-tree vv-rows vv-scroll');
+results.style.display = 'none';
+root.append(header, messageBar, browser, list, treeTitle, searchBox, tree, results);
 document.body.append(root);
 
 let state: ListState = { workspace: null, waveforms: [], active: null };
@@ -94,8 +96,8 @@ function renderList(): void {
   }
   const hasTree = !!state.active;
   treeTitle.style.display = hasTree ? '' : 'none';
-  tree.style.display = hasTree ? '' : 'none';
-  if (!hasTree) { searchBox.replaceChildren(); }
+  if (!hasTree) { searchBox.replaceChildren(); searchInput = undefined; results.style.display = 'none'; }
+  tree.style.display = hasTree && results.style.display === 'none' ? '' : 'none';
 }
 
 // --------------------------------------------------------------------------------------------
@@ -107,8 +109,8 @@ async function browse(dir?: string): Promise<void> {
   const r = await request('panel.browse', { dir });
   if (r.file) { return openWaveform(r.file); }
   browser.replaceChildren();
-  const bar = el('div', 'vv-pathbar');
-  const input = el('input', 'vv-input');
+  const bar = el('div', 'vv-field');
+  const input = el('input');
   input.value = r.dir;
   input.spellcheck = false;
   input.title = 'Folder or waveform file. Press Enter.';
@@ -119,7 +121,7 @@ async function browse(dir?: string): Promise<void> {
   bar.append(input, cancel);
   browser.append(bar);
   if (r.error) { browser.append(el('div', 'vv-empty', r.error)); }
-  const entries = el('div', 'vv-entries');
+  const entries = el('div', 'vv-entries vv-rows vv-scroll');
   const join = (name: string) => r.dir + (r.dir.endsWith(r.sep) ? '' : r.sep) + name;
   if (r.parent) {
     const up = el('div', 'vv-entry folder', '..');
@@ -158,6 +160,9 @@ openButton.addEventListener('click', () => {
 // Netlist tree. The children of a node load when the node opens.
 // --------------------------------------------------------------------------------------------
 
+// The arrow of the Orca file explorer (lucide "chevron-right"). It turns when the node opens.
+const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+
 type NodeView = { node: TreeNode; row: HTMLElement; open: () => Promise<void> };
 let views = new Map<number, NodeView>();
 let selected = new Set<number>();
@@ -181,10 +186,12 @@ async function loadChildren(container: HTMLElement, id?: number, depth = 0): Pro
   for (const node of r.items as TreeNode[]) { container.append(renderNode(node, depth)); }
 }
 
-/** The buttons in the title of the tree, for example "Search Netlist". */
+/** The buttons in the title of the tree. The search has its own field below the title. */
 function renderTitleButtons(buttons: InlineButton[]): void {
   treeButtons.replaceChildren();
+  showSearchField(buttons.some((b) => b.command === SEARCH_COMMAND));
   for (const b of buttons) {
+    if (b.command === SEARCH_COMMAND) { continue; }
     const button = el('button', 'vv-icon' + (b.icon ? ` codicon codicon-${b.icon}` : ''), b.icon ? '' : b.title.slice(0, 1));
     button.title = b.title;
     button.addEventListener('click', () => void run(() => request('menu.run', { source: 'title', command: b.command })));
@@ -195,9 +202,10 @@ function renderTitleButtons(buttons: InlineButton[]): void {
 function renderNode(node: TreeNode, depth: number): HTMLElement {
   const wrap = el('div', 'vv-node');
   const row = el('div', 'vv-node-row');
-  row.style.paddingLeft = `${4 + depth * 12}px`;
+  row.style.paddingLeft = `${8 + depth * 16}px`;
   row.title = node.tooltip || node.label;
-  const twist = el('span', 'vv-twist', node.expandable ? '▸' : '');
+  const twist = el('span', 'vv-twist');
+  if (node.expandable) { twist.innerHTML = CHEVRON; }
   const icon = el('span', node.icon ? `vv-node-icon codicon codicon-${node.icon}` : 'vv-node-icon');
   if (node.color) { icon.style.color = ICON_COLORS[node.color] ?? ''; }
   row.append(twist, icon, el('span', 'vv-name', node.label), el('span', 'vv-dim', node.description));
@@ -216,7 +224,7 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
     if (!node.expandable || isOpen === next) { return loaded; }
     isOpen = next;
     if (isOpen) { openIds.add(node.id); } else { openIds.delete(node.id); }
-    twist.textContent = isOpen ? '▾' : '▸';
+    twist.classList.toggle('open', isOpen);
     children.style.display = isOpen ? '' : 'none';
     void request('tree.action', { id: node.id, action: isOpen ? 'expand' : 'collapse' });
     if (isOpen && !loaded) { loaded = loadChildren(children, node.id, depth + 1); }
@@ -275,37 +283,57 @@ async function reveal(path: number[], select: boolean): Promise<void> {
 type SearchItem = { label: string; description: string; detail: string; icon: string; color: string };
 type SearchState = { visible: boolean; value: string; title: string; placeholder: string; busy: boolean; more: number; items: SearchItem[] };
 
+const SEARCH_COMMAND = 'vaporview.searchNetlist';
+const SEARCH_PLACEHOLDER = 'Search netlist';
 let searchInput: HTMLInputElement | undefined;
-let searchResults: HTMLElement | undefined;
+let searchClear: HTMLElement | undefined;
 let searchInfo: HTMLElement | undefined;
+let searchOpen = false;   // the quick pick of vaporview shows
+
+/** The search field is always in the panel, as "Find files" of the Orca file explorer. */
+function showSearchField(searchable: boolean): void {
+  if (!searchable) { searchBox.replaceChildren(); searchInput = undefined; return; }
+  if (searchInput?.isConnected) { return; }
+  searchBox.replaceChildren();
+  const field = el('div', 'vv-field');
+  const input = el('input');
+  input.spellcheck = false;
+  input.placeholder = SEARCH_PLACEHOLDER;
+  input.addEventListener('input', () => void run(async () => {
+    // The first character starts the vaporview search command.
+    if (!searchOpen) { searchOpen = true; await request('menu.run', { source: 'title', command: SEARCH_COMMAND }); }
+    await request('search.input', { value: input.value });
+  }));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { void request('search.hide'); }
+    if (e.key === 'Enter') { (results.firstElementChild as HTMLElement | null)?.click(); }
+  });
+  const clear = el('button', 'vv-icon codicon codicon-close');
+  clear.title = 'Clear the search';
+  clear.style.visibility = 'hidden';
+  clear.addEventListener('click', () => void request('search.hide'));
+  field.append(el('span', 'vv-field-icon codicon codicon-search'), input, clear);
+  searchInfo = el('div', 'vv-search-info');
+  searchBox.append(field, searchInfo);
+  searchInput = input;
+  searchClear = clear;
+}
 
 function renderSearch(s: SearchState): void {
-  if (!s.visible) { searchBox.replaceChildren(); searchInput = undefined; return; }
-  if (!searchInput || !searchInput.isConnected) {
-    searchBox.replaceChildren();
-    const bar = el('div', 'vv-pathbar');
-    searchInput = el('input', 'vv-input');
-    searchInput.spellcheck = false;
-    const input = searchInput;
-    input.addEventListener('input', () => void request('search.input', { value: input.value }));
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { void request('search.hide'); }
-      if (e.key === 'Enter' && searchResults?.firstElementChild) { (searchResults.firstElementChild as HTMLElement).click(); }
-    });
-    const close = el('button', 'vv-icon', '×');
-    close.title = 'Close the search';
-    close.addEventListener('click', () => void request('search.hide'));
-    bar.append(input, close);
-    searchInfo = el('div', 'vv-search-info');
-    searchResults = el('div', 'vv-entries');
-    searchBox.append(bar, searchInfo, searchResults);
-    input.focus();
-  }
+  searchOpen = s.visible;
+  if (!searchInput) { return; }
+  if (s.visible && document.activeElement !== searchInput && s.value === '') { searchInput.focus(); }   // "Search Scope", Ctrl+F
   // vaporview changes the text when the person selects a scope: the search goes into that scope.
-  if (searchInput.value !== s.value) { searchInput.value = s.value; searchInput.focus(); }
-  searchInput.placeholder = s.placeholder || 'Search netlist by instance path...';
-  searchInfo!.textContent = s.busy ? 'Searching…' : s.title + (s.more ? ` (the first ${s.items.length} show)` : '');
-  searchResults!.replaceChildren();
+  if (searchInput.value !== s.value) { searchInput.value = s.value; }
+  searchInput.placeholder = s.visible && s.placeholder ? s.placeholder : SEARCH_PLACEHOLDER;
+  const active = s.visible && s.value !== '';
+  searchClear!.style.visibility = active ? 'visible' : 'hidden';
+  searchInfo!.textContent = !active ? '' : s.busy ? 'Searching…' : s.title + (s.more ? ` (the first ${s.items.length} show)` : '');
+  // The results take the place of the tree, as in the Orca file explorer.
+  results.style.display = active ? '' : 'none';
+  tree.style.display = active || !state.active ? 'none' : '';
+  results.replaceChildren();
+  if (!active) { return; }
   s.items.forEach((item, index) => {
     const row = el('div', 'vv-result');
     const icon = el('span', item.icon ? `vv-node-icon codicon codicon-${item.icon}` : 'vv-node-icon');
@@ -317,7 +345,7 @@ function renderSearch(s: SearchState): void {
     row.title = item.detail;
     row.append(icon, text);
     row.addEventListener('click', () => void run(() => request('search.accept', { index }, 60_000)));
-    searchResults!.append(row);
+    results.append(row);
   });
 }
 

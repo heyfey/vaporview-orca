@@ -93,7 +93,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 
 | Feature | vaporview | Plugin | Built | Tested | Reason and Orca PR |
 |---|---|---|---|---|---|
-| Netlist tree with lazy load | VS Code tree view | Tweaked | yes | Orca | HTML tree in the panel. The Orca `Tree` component stops at 2000 items. |
+| Netlist tree with lazy load | VS Code tree view | Tweaked | yes | Orca | HTML tree in the panel, with the look of the Orca file explorer (copied values and the Geist font). The native Orca `Tree` has no context menu, no row buttons, and 2000 items maximum. PR-9 |
 | Icons and icon colors | VS Code theme icons | Tweaked | yes | no | Same icon font. Fixed colors. |
 | Add variable (button on the row) | Inline button | Same | yes | Orca | |
 | Show in viewer (button on the row, menu) | Inline button | Same | yes | no | |
@@ -102,7 +102,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Add selected, remove selected | Menu, multiple selection | Same | yes | no | Ctrl plus click selects more than one item. No Shift range. |
 | Add all in scope (shallow, recursive), remove all in scope | Menu | Same | yes | Node | The items are in the menu. The commands are not run in a test. |
 | Copy variable name | Menu | Tweaked | yes | no | The page writes the clipboard |
-| Search netlist, search scope | VS Code quick pick, Ctrl+F | Tweaked | yes | Orca | The search field and the results show in the panel (button in the title of the tree, "Search Scope" in the tree menu). The search and the action on a result are the vaporview code: a variable goes into the viewer, a scope makes the search go into that scope. |
+| Search netlist, search scope | VS Code quick pick, Ctrl+F | Tweaked | yes | Orca | The search field is always in the panel below the title "Netlist", as "Find files" in the Orca file explorer. The results take the place of the tree. "Search Scope" is in the tree menu. The search and the action on a result are the vaporview code: a variable goes into the viewer, a scope makes the search go into that scope. |
 | Add variable by name, add scope by name | Asks for the name in an input box | Blocked | no | | No input prompt. PR-7 (deferred) |
 | Sort netlist | Setting | Same | yes | no | |
 | Tree stays open | Yes | Same | yes | no | The tree keeps its open nodes while the same waveform is active |
