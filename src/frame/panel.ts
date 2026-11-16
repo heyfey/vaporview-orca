@@ -45,9 +45,13 @@ header.append(title, openButton);
 const messageBar = el('div', 'vv-message');
 const browser = el('div', 'vv-browser');
 const list = el('div', 'vv-list');
-const treeTitle = el('div', 'vv-section', 'Netlist');
+const treeTitle = el('div', 'vv-section');
+const treeTitleText = el('span', '', 'Netlist');
+const treeButtons = el('span', 'vv-section-buttons');
+treeTitle.append(treeTitleText, treeButtons);
+const searchBox = el('div', 'vv-search');
 const tree = el('div', 'vv-tree');
-root.append(header, messageBar, browser, list, treeTitle, tree);
+root.append(header, messageBar, browser, list, treeTitle, searchBox, tree);
 document.body.append(root);
 
 let state: ListState = { workspace: null, waveforms: [], active: null };
@@ -91,6 +95,7 @@ function renderList(): void {
   const hasTree = !!state.active;
   treeTitle.style.display = hasTree ? '' : 'none';
   tree.style.display = hasTree ? '' : 'none';
+  if (!hasTree) { searchBox.replaceChildren(); }
 }
 
 // --------------------------------------------------------------------------------------------
@@ -171,8 +176,20 @@ const runTreeCommand = (id: number, command: string) =>
 
 async function loadChildren(container: HTMLElement, id?: number, depth = 0): Promise<void> {
   const r = await request('tree.children', { id });
+  if (id === undefined) { renderTitleButtons(r.title ?? []); }
   container.replaceChildren();
   for (const node of r.items as TreeNode[]) { container.append(renderNode(node, depth)); }
+}
+
+/** The buttons in the title of the tree, for example "Search Netlist". */
+function renderTitleButtons(buttons: InlineButton[]): void {
+  treeButtons.replaceChildren();
+  for (const b of buttons) {
+    const button = el('button', 'vv-icon' + (b.icon ? ` codicon codicon-${b.icon}` : ''), b.icon ? '' : b.title.slice(0, 1));
+    button.title = b.title;
+    button.addEventListener('click', () => void run(() => request('menu.run', { source: 'title', command: b.command })));
+    treeButtons.append(button);
+  }
 }
 
 function renderNode(node: TreeNode, depth: number): HTMLElement {
@@ -252,6 +269,59 @@ async function reveal(path: number[], select: boolean): Promise<void> {
 }
 
 // --------------------------------------------------------------------------------------------
+// Netlist search. vaporview uses a VS Code quick pick. The panel draws the field and the results.
+// --------------------------------------------------------------------------------------------
+
+type SearchItem = { label: string; description: string; detail: string; icon: string; color: string };
+type SearchState = { visible: boolean; value: string; title: string; placeholder: string; busy: boolean; more: number; items: SearchItem[] };
+
+let searchInput: HTMLInputElement | undefined;
+let searchResults: HTMLElement | undefined;
+let searchInfo: HTMLElement | undefined;
+
+function renderSearch(s: SearchState): void {
+  if (!s.visible) { searchBox.replaceChildren(); searchInput = undefined; return; }
+  if (!searchInput || !searchInput.isConnected) {
+    searchBox.replaceChildren();
+    const bar = el('div', 'vv-pathbar');
+    searchInput = el('input', 'vv-input');
+    searchInput.spellcheck = false;
+    const input = searchInput;
+    input.addEventListener('input', () => void request('search.input', { value: input.value }));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { void request('search.hide'); }
+      if (e.key === 'Enter' && searchResults?.firstElementChild) { (searchResults.firstElementChild as HTMLElement).click(); }
+    });
+    const close = el('button', 'vv-icon', '×');
+    close.title = 'Close the search';
+    close.addEventListener('click', () => void request('search.hide'));
+    bar.append(input, close);
+    searchInfo = el('div', 'vv-search-info');
+    searchResults = el('div', 'vv-entries');
+    searchBox.append(bar, searchInfo, searchResults);
+    input.focus();
+  }
+  // vaporview changes the text when the person selects a scope: the search goes into that scope.
+  if (searchInput.value !== s.value) { searchInput.value = s.value; searchInput.focus(); }
+  searchInput.placeholder = s.placeholder || 'Search netlist by instance path...';
+  searchInfo!.textContent = s.busy ? 'Searching…' : s.title + (s.more ? ` (the first ${s.items.length} show)` : '');
+  searchResults!.replaceChildren();
+  s.items.forEach((item, index) => {
+    const row = el('div', 'vv-result');
+    const icon = el('span', item.icon ? `vv-node-icon codicon codicon-${item.icon}` : 'vv-node-icon');
+    if (item.color) { icon.style.color = ICON_COLORS[item.color] ?? ''; }
+    const text = el('div', 'vv-result-text');
+    const first = el('div', 'vv-result-line');
+    first.append(el('span', 'vv-name', item.label), el('span', 'vv-dim', item.description));
+    text.append(first, el('div', 'vv-dim vv-result-detail', item.detail));
+    row.title = item.detail;
+    row.append(icon, text);
+    row.addEventListener('click', () => void run(() => request('search.accept', { index }, 60_000)));
+    searchResults!.append(row);
+  });
+}
+
+// --------------------------------------------------------------------------------------------
 // Start
 // --------------------------------------------------------------------------------------------
 
@@ -264,6 +334,7 @@ async function refresh(context?: unknown): Promise<void> {
 
 orca.plugin.on('panel.changed', (next: ListState) => { state = next; renderList(); });
 orca.plugin.on('tree.changed', (p: { full?: boolean }) => reloadTree(p?.full === true));
+orca.plugin.on('search.update', (s: SearchState) => renderSearch(s));
 orca.plugin.on('tree.reveal', (p: { path: number[]; select: boolean }) => void run(() => reveal(p.path ?? [], p.select)));
 orca.plugin.on('panel.message', (m: { level: string; message: string }) => showMessage(m.message, m.level));
 orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });

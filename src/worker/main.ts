@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { activate as activateVaporview } from '../../vaporview/src/extension_core/extension';
 import {
   setAdapterHost, registry, createExtensionContext, Uri, WebviewPanel, CancellationTokenSource,
-  TreeItemCollapsibleState, fireConfigurationChanged, onDidChangeContextKey, type TreeView, type StatusBarItem,
+  TreeItemCollapsibleState, fireConfigurationChanged, onDidChangeContextKey, type TreeView, type StatusBarItem, type QuickPick,
 } from '../adapter/vscode';
 import { encodeMessages } from '../common/codec';
 import { Menus } from './menus';
@@ -159,6 +159,11 @@ export default async function activate(orca: any): Promise<void> {
     return undefined;
   };
 
+  // The quick pick that shows in the panel now. vaporview makes its quick pick at its start.
+  const SEARCH_MAX_ITEMS = 200;
+  let search: QuickPick<any> | undefined;
+  let searchTimer: NodeJS.Timeout | undefined;
+
   // Settings. VS Code reads a setting without a wait, so the worker keeps a copy.
   let settings: Record<string, unknown> = {};
   try { settings = (await orca.settings?.get?.()) ?? {}; } catch (err: any) { log(`settings not available: ${err?.code ?? err}`); }
@@ -194,6 +199,7 @@ export default async function activate(orca: any): Promise<void> {
       orca.settings?.set?.(key.slice(SETTING_PREFIX.length), value)?.catch?.((err: any) => log(`cannot save setting ${key}: ${err?.code ?? err}`));
     },
     statusBarChanged,
+    quickPickChanged: (pick) => searchChanged(pick),
     // The worker has no clipboard. A frame writes the text.
     clipboardWrite: (text: string) => {
       log(`clipboard: ${text.length} characters, starts with ${JSON.stringify(text.slice(0, 60))}`);
@@ -502,7 +508,10 @@ export default async function activate(orca: any): Promise<void> {
     const parent = input?.id ? treeItems.get(input.id) : undefined;
     if (input?.id && !parent) { return { items: [], stale: true }; }
     const children = (await treeData.getChildren(parent)) ?? [];
-    return { items: await Promise.all(children.map(describe)), title: menus.resolve('view/title', { ...contextKeys(), view: TREE_ID }, 'exclude').length };
+    // The buttons that VS Code shows in the title of the tree view.
+    const title = menus.resolve('view/title', { ...contextKeys(), view: TREE_ID })
+      .flatMap((m) => (m.kind === 'item' ? [{ command: m.command, title: m.title, icon: menus.icon(m.command) }] : []));
+    return { items: await Promise.all(children.map(describe)), title };
   });
 
   orca.panels.handle('tree.action', async (input: any) => {
@@ -528,6 +537,46 @@ export default async function activate(orca: any): Promise<void> {
       return { ok: true };
     }
     return { ok: false };
+  });
+
+  // ------------------------------------------------------------------------------------------
+  // Netlist search. vaporview uses a VS Code quick pick: a text field with a list of results.
+  // The panel shows it. The search and the action on a result are the vaporview code.
+  // ------------------------------------------------------------------------------------------
+
+  function searchChanged(pick: QuickPick<any>): void {
+    if (pick.visible) { search = pick; } else if (search !== pick) { return; }
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const p = search;
+      if (!p) { return; }
+      orca.panels.post('search.update', {
+        visible: p.visible,
+        value: p.value,
+        title: p.title ?? '',
+        placeholder: p.placeholder ?? '',
+        busy: p.busy,
+        more: Math.max(0, p.items.length - SEARCH_MAX_ITEMS),
+        items: p.items.slice(0, SEARCH_MAX_ITEMS).map((item: any) => ({
+          label: String(item.label ?? ''),
+          description: String(item.description ?? ''),
+          detail: String(item.detail ?? ''),
+          icon: item.iconPath?.id ?? '',
+          color: item.iconPath?.color?.id ?? '',
+        })),
+      });
+      if (!p.visible) { search = undefined; }
+    }, 30);
+  }
+
+  orca.panels.handle('search.input', (input: any) => { search?.userInput(String(input?.value ?? '')); return { ok: !!search }; });
+  orca.panels.handle('search.hide', () => { search?.hide(); return { ok: true }; });
+  orca.panels.handle('search.accept', async (input: any) => {
+    const entry = activeEntry();
+    if (!search || !entry) { return { ok: false }; }
+    await ensureFrame(entry);   // a variable goes into the viewer
+    search.userAccept(Number(input?.index));
+    return { ok: true };
   });
 
   // ------------------------------------------------------------------------------------------

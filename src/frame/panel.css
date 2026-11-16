@@ -33,3 +33,13 @@ body { font: 12px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: v
 .vv-entries { max-height: 40vh; overflow: auto; }
 .vv-entry.folder::before { content: "▸"; color: var(--orca-muted-foreground); }
 .vv-entry.file { font-weight: 600; }
+.vv-section { display: flex; align-items: center; justify-content: space-between; }
+.vv-section-buttons .vv-icon.codicon { font-size: 14px; line-height: 20px; }
+.vv-search:empty { display: none; }
+.vv-search { border-bottom: 1px solid var(--orca-border); }
+.vv-search-info { padding: 0 8px 4px; color: var(--orca-muted-foreground); }
+.vv-result { display: flex; align-items: flex-start; gap: 6px; padding: 3px 8px; cursor: pointer; }
+.vv-result:hover { background: var(--orca-accent); }
+.vv-result-text { min-width: 0; flex: 1; }
+.vv-result-line { display: flex; gap: 6px; white-space: nowrap; }
+.vv-result-detail { font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }

@@ -62,7 +62,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Context menu of a group or separator | Native VS Code menu | Tweaked | yes | no | Same method |
 | Remove variable | Menu | Same | yes | Orca (events) | |
 | Show in netlist view | Menu, Ctrl+R | Same | yes | no | The panel opens the parents of the item and selects it |
-| Copy name, copy value at marker | Menu | Tweaked | yes | no | The worker has no clipboard, so the page writes the text |
+| Copy name, copy value at marker | Menu | Tweaked | yes | no | The worker has no clipboard, so the page writes the text. The same clipboard path works for the WaveDrom copy. |
 | Value formats: binary, decimal, signed, hex, octal, base64, float, BFloat16, TensorFloat32, ASCII, epoch time, enum | Submenu | Same | yes | Orca (events) | "Decimal (Unsigned)" tested |
 | Value formats: fixed point, signed fixed point | Asks for the offset in an input box | Blocked | no | | Orca has no input prompt. The menu does not show the item. PR-7 (deferred) |
 | Render type: multi bit, linear, stepped, signed variants | Submenu | Same | yes | no | |
@@ -77,13 +77,13 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Create signals from: custom length | Asks for the length in an input box | Blocked | no | | No input prompt. PR-7 (deferred) |
 | New signal from bit range | Asks for the range in an input box | Blocked | no | | No input prompt. PR-7 (deferred) |
 | Time unit: s, ms, µs, ns, ps, fs | Submenu | Same | yes | no | |
-| Time unit: quick pick | VS Code quick pick | Blocked | no | | No quick pick. The submenu gives the same function. PR-7 (deferred) |
+| Time unit: quick pick | VS Code quick pick (`showQuickPick`) | Blocked | no | | The plugin has only the quick pick of the search. The submenu gives the same function. PR-7 (deferred) |
 | Ruler lines, ruler increment "Auto" | Menu | Same | yes | Orca (events) | The menu follows the state ("Hide Ruler Lines") |
 | Ruler increment "Custom" | Asks for the value in an input box | Blocked | no | | No input prompt. PR-7 (deferred) |
 | Shade or outline bit vectors, animations, scrolling mode | Menu | Same | yes | no | |
-| WaveDrom: copy selection, clock settings | Submenu | Same | yes | no | |
+| WaveDrom: copy selection, clock settings | Submenu | Same | yes | Orca | The copy to the clipboard was tested by hand. The clock settings are not tested. |
 | Zoom to fit | Ctrl+0 | Same | yes | Orca (events) | With a real keyboard, Orca possibly takes Ctrl+0 first. Not tested by hand. |
-| Other keybindings (15 of the 17) | VS Code keybindings | Tweaked | yes | no | Key events in the page. Orca keybindings are `global` or `workspace` only. Keys with Ctrl or Alt are not tested by hand. Ctrl+F (search) is not built, see D1. |
+| Other keybindings (16 of the 17) | VS Code keybindings | Tweaked | yes | no | Key events in the page. Orca keybindings are `global` or `workspace` only. Keys with Ctrl or Alt are not tested by hand. Ctrl+F opens the search in the panel, if the panel shows. |
 | Signal colors follow the color theme | Colors of the VS Code theme | Tweaked | yes | Orca | Fixed colors. Orca gives a plugin no theme colors for this. See decision D3. |
 | Page colors follow the theme | VS Code theme variables | Tweaked | yes | Orca | Mapped to the 20 `--orca-*` variables. Only the dark theme was seen. |
 | "More Settings", "Show Readme" | Open VS Code pages | Blocked | no | | Orca has no API to open its settings page or a document. The menu does not show the items. |
@@ -102,7 +102,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Add selected, remove selected | Menu, multiple selection | Same | yes | no | Ctrl plus click selects more than one item. No Shift range. |
 | Add all in scope (shallow, recursive), remove all in scope | Menu | Same | yes | Node | The items are in the menu. The commands are not run in a test. |
 | Copy variable name | Menu | Tweaked | yes | no | The page writes the clipboard |
-| Search netlist, search scope | VS Code quick pick, Ctrl+F | Decision | no | | No quick pick in Orca. See decision D1. |
+| Search netlist, search scope | VS Code quick pick, Ctrl+F | Tweaked | yes | Orca | The search field and the results show in the panel (button in the title of the tree, "Search Scope" in the tree menu). The search and the action on a result are the vaporview code: a variable goes into the viewer, a scope makes the search go into that scope. |
 | Add variable by name, add scope by name | Asks for the name in an input box | Blocked | no | | No input prompt. PR-7 (deferred) |
 | Sort netlist | Setting | Same | yes | no | |
 | Tree stays open | Yes | Same | yes | no | The tree keeps its open nodes while the same waveform is active |
@@ -112,7 +112,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Feature | vaporview | Plugin | Built | Tested | Reason and Orca PR |
 |---|---|---|---|---|---|
 | Automatic view state | VS Code webview state | Tweaked | yes | Orca | Session file in `.vaporview/`, written by the worker. The signal list came back after a worker restart. |
-| Save session, load session | Save and open dialogs | Decision | no | | No file dialog. The menu does not show the items. See decision D2. PR-2 |
+| Save session, load session | Save and open dialogs | Blocked | no | | No file dialog, so the menu does not show the items. The automatic session file in `.vaporview/` has the same role (decision D2). PR-2 |
 | Settings | 33 settings in VS Code | Same | yes | Orca | 26 settings in the Orca settings page of the plugin. The 7 others are for features that the plugin does not have. The plugin does not read the settings of VS Code. |
 | Change a setting from the viewer | For example scrolling mode | Same | yes | Orca | The command "Touchpad" of the scrolling mode changed the Orca setting |
 | Status bar: marker time, delta time, selected signal | 3 items | Same | yes | Orca | Orca status bar items |
@@ -134,18 +134,18 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 vaporview has 21 places that show a message (information, warning, error, or a question with
 buttons). In VS Code a message is a notification. In the plugin a message shows in the panel.
 
-"Decision" is `done` where the behavior is decided and built. `open` needs a decision, see D5.
+"Decision" is `done` where the behavior is decided.
 
 | # | Message | Source | When | Can occur now | Plugin | Decision |
 |---|---|---|---|---|---|---|
 | 1 | "Error getting user theme. If you are seeing this while using VS Code SSH…" | `viewer_provider.ts:167` | At the start, when vaporview cannot read the VS Code color theme | Yes, at each start | Hidden. It goes to the log only. | done |
 | 2 | "You are about to add a large number of signals…" (Yes, No) | `viewer_provider.ts:1267` | More than 48 signals in one action | Yes | No message. The plugin adds the signals. | done |
 | 3 | "Restore state from file: `<name>.json`?" (Yes, No, Settings) | `viewer_provider.ts:720` | A `<name>.json` is beside the waveform file and the page has no saved state | Yes | Hidden. It goes to the log only, and the file is not loaded. | done |
-| 4 | "WaveDrom JSON copied to clipboard." | `wavedrom.ts:155` | After "Copy Selection as WaveDrom" | Yes | Shows | open: keep |
-| 5 | "The number of transitions exceeds the maximum limit of N" | `wavedrom.ts:149` | The WaveDrom copy is cut at the limit | Yes | Shows | open: keep |
-| 6 | "Unknown number format: X" | `value_format.ts:701` | A value format id that vaporview does not know, for example from an old session file | Yes, rare | Shows | open: keep |
-| 7 | "FSDB support is currently available on Linux only." | `fsdb_handler.ts:137` | The person types the path of an `.fsdb` file in the file browser | Yes | Shows | open: replace with one plugin message "FSDB is not available yet" |
-| 8 | "Failed to load FSDB reader, is vaporview.fsdbReaderLibsPath properly set?" | `fsdb_handler.ts:216` | Same, on Linux | Yes | Shows | open: same as 7 |
+| 4 | "WaveDrom JSON copied to clipboard." | `wavedrom.ts:155` | After "Copy Selection as WaveDrom" | Yes | Shows | done |
+| 5 | "The number of transitions exceeds the maximum limit of N" | `wavedrom.ts:149` | The WaveDrom copy is cut at the limit | Yes | Shows | done |
+| 6 | "Unknown number format: X" | `value_format.ts:701` | A value format id that vaporview does not know, for example from an old session file | Yes, rare | Shows | done |
+| 7 | "FSDB support is currently available on Linux only." | `fsdb_handler.ts:137` | The person types the path of an `.fsdb` file in the file browser | Yes | Shows. It needs a typed `.fsdb` path. | done |
+| 8 | "Failed to load FSDB reader, is vaporview.fsdbReaderLibsPath properly set?" | `fsdb_handler.ts:216` | Same, on Linux | Yes | Shows. Only on Linux. | done |
 | 9 | "Remote connection lost… Please reconnect." (Reconnect, Close Tab) | `viewer_provider.ts:515` | Remote viewer | No, deferred | | |
 | 10 | "`<url>` uses unencrypted HTTP…" (Connect Anyway) | `viewer_provider.ts:544` | Remote viewer | No, deferred | | |
 | 11 | "Failed to open remote viewer: …" | `viewer_provider.ts:575` | Remote viewer | No, deferred | | |
@@ -166,11 +166,11 @@ Messages 9 to 21 cannot occur now. If one occurs later, it shows in the panel.
 
 | # | Topic | Options | Recommendation |
 |---|---|---|---|
-| D1 | Netlist search | (a) Leave it out until Orca has a quick pick. (b) A search field in the panel. The parser search that vaporview uses is available. | (b). Search is necessary for a large design, and the panel is our own page. |
-| D2 | Save and load a session file | (a) Leave it out until Orca has a file dialog (PR-2). (b) "Save" with the Orca save dialog (`files.saveAs`), "Load" with the file browser of the panel. | (a). The automatic session file covers the main use. |
-| D3 | Signal colors | (a) Keep the fixed colors. (b) Add 4 plugin settings for the first four colors (vaporview already has settings for colors 5 to 8). | (a) for now |
-| D4 | Commands in the Orca command palette | (a) None. (b) A small set that needs no argument: zoom to fit, reload file, new group. | (b), after the menus are tested by hand |
-| D5 | Messages of vaporview that can occur (rows 3 to 8 of "Messages of vaporview") | For each: show it in the panel, or hide it | Hide 3. Keep 4, 5, and 6. Replace 7 and 8 with one plugin message. |
+| D1 | Netlist search | Decided 2026-11-15: a search in the panel. Built. | |
+| D2 | Save and load a session file | Decided 2026-11-15: no separate save and load. The automatic file `.vaporview/<name>.vaporview.json` is the session file of the waveform. | |
+| D3 | Signal colors | Decided 2026-11-15: fixed colors for now. | |
+| D4 | Commands in the Orca command palette | (a) None. (b) A small set that needs no argument: zoom to fit, reload file, new group. | Open |
+| D5 | Messages of vaporview | Decided 2026-11-15: rows 1 and 3 hidden, row 2 adds the signals, rows 4 to 8 stay as they are. | |
 
 ## Checks that need a person
 

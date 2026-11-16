@@ -98,6 +98,21 @@ check(!bitMenu.some((m) => m.label === 'Format Values') && !bitMenu.some((m) => 
 const rulerMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'ruler', rulerLines: true } })).items;
 check(rulerMenu.some((m) => m.title === 'Hide Ruler Lines') && !rulerMenu.some((m) => m.title === 'Show Ruler Lines'), 'viewer menu of the ruler follows the state');
 
+// Netlist search: the vaporview quick pick shows in the panel.
+check(top.title.some((b) => b.command === 'vaporview.searchNetlist' && b.icon === 'search'), 'the tree title has the "Search Netlist" button');
+const lastSearch = () => posts.filter((p) => p.event === 'search.update').at(-1)?.payload;
+const waitSearch = async (test) => { for (let i = 0; i < 80; i++) { await sleep(25); const s = lastSearch(); if (s && test(s)) { return s; } } return lastSearch(); };
+posts.length = 0;
+await req('menu.run', { source: 'title', command: 'vaporview.searchNetlist' });
+let found = await waitSearch((s) => s.visible);
+check(found?.visible === true, 'the command shows the search in the panel');
+await req('search.input', { value: 'clk' });
+found = await waitSearch((s) => !s.busy && s.items.length > 0);
+check(found?.items.length > 0 && found.items.every((i) => i.detail), `the search for "clk" gives results (${found?.items.length}, first: ${found?.items[0]?.detail})`);
+await req('search.hide');
+found = await waitSearch((s) => !s.visible);
+check(found?.visible === false, 'the search closes');
+
 // vaporview asks before it adds more than 48 signals. The plugin answers "Yes" itself.
 posts.length = 0;
 const poll2 = async () => JSON.parse((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).messages);
@@ -118,7 +133,7 @@ check(afterClose.closed === true, 'close marks the session file');
 check((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).closed === true, 'a frame of the closed waveform is told "closed"');
 check((await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext })).closed === true, 'a new frame does not load a closed waveform');
 const again = await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext, reopen: true });
-check(!!again.docKey && again.keybindings.length === 16, 'the person can open it again, and the frame gets the keybindings');
+check(!!again.docKey && again.keybindings.length === 17, 'the person can open it again, and the frame gets the keybindings');
 check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart === true, 'a frame of an unknown document is told to start again');
 fs.rmSync(workspacePath, { recursive: true, force: true });
 process.exit(process.exitCode ?? 0);

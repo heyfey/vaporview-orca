@@ -34,6 +34,8 @@ export interface AdapterHost {
   setSetting(key: string, value: unknown): void;
   statusBarChanged(item: StatusBarItem): void;
   clipboardWrite(text: string): void;
+  /** A quick pick changed: it shows or hides, or its text or items are different. */
+  quickPickChanged(pick: QuickPick<any>): void;
 }
 
 const noHost: AdapterHost = {
@@ -46,6 +48,7 @@ const noHost: AdapterHost = {
   setSetting: () => undefined,
   statusBarChanged: () => undefined,
   clipboardWrite: () => undefined,
+  quickPickChanged: () => undefined,
 };
 
 let host: AdapterHost = noHost;
@@ -273,6 +276,74 @@ export class StatusBarItem {
   show(): void { this.visible = true; host.statusBarChanged(this); }
   hide(): void { this.visible = false; host.statusBarChanged(this); }
   dispose(): void { this.hide(); }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Quick pick: a text field with a list of results. VS Code draws it at the top of its window.
+// Orca has no quick pick for a plugin, so the host shows it in the panel.
+// ---------------------------------------------------------------------------------------------
+
+export class QuickPick<T> {
+  private _value = '';
+  private _items: T[] = [];
+  private _title: string | undefined;
+  private _placeholder: string | undefined;
+  private _busy = false;
+  visible = false;
+  selectedItems: T[] = [];
+  activeItems: T[] = [];
+  matchOnDescription = false;
+  matchOnDetail = false;
+
+  private valueEmitter = new EventEmitter<string>();
+  private acceptEmitter = new EventEmitter<void>();
+  private hideEmitter = new EventEmitter<void>();
+  onDidChangeValue = this.valueEmitter.event;
+  onDidAccept = this.acceptEmitter.event;
+  onDidHide = this.hideEmitter.event;
+  onDidChangeSelection = new EventEmitter<T[]>().event;
+  onDidChangeActive = new EventEmitter<T[]>().event;
+  onDidTriggerButton = new EventEmitter<unknown>().event;
+
+  get value(): string { return this._value; }
+  set value(v: string) {
+    if (v === this._value) { return; }
+    this._value = v;
+    host.quickPickChanged(this);
+    this.valueEmitter.fire(v);
+  }
+  get items(): T[] { return this._items; }
+  set items(v: T[]) { this._items = v; host.quickPickChanged(this); }
+  get title(): string | undefined { return this._title; }
+  set title(v: string | undefined) { this._title = v; host.quickPickChanged(this); }
+  get placeholder(): string | undefined { return this._placeholder; }
+  set placeholder(v: string | undefined) { this._placeholder = v; host.quickPickChanged(this); }
+  get busy(): boolean { return this._busy; }
+  set busy(v: boolean) { this._busy = v; host.quickPickChanged(this); }
+
+  show(): void { this.visible = true; host.quickPickChanged(this); }
+  hide(): void {
+    if (!this.visible) { return; }
+    this.visible = false;
+    host.quickPickChanged(this);
+    this.hideEmitter.fire();
+  }
+  dispose(): void { this.hide(); }
+
+  /** The host calls this when the person types in the field. */
+  userInput(value: string): void {
+    if (value === this._value) { return; }
+    this._value = value;
+    this.valueEmitter.fire(value);
+  }
+  /** The host calls this when the person selects a result. */
+  userAccept(index: number): void {
+    const item = this._items[index];
+    if (item === undefined) { return; }
+    this.selectedItems = [item];
+    this.activeItems = [item];
+    this.acceptEmitter.fire();
+  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -513,16 +584,7 @@ export const window = namespace('window', {
   async showQuickPick(): Promise<undefined> { unsupported('window.showQuickPick'); return undefined; },
   async showOpenDialog(): Promise<undefined> { unsupported('window.showOpenDialog'); return undefined; },
   async showSaveDialog(): Promise<undefined> { unsupported('window.showSaveDialog'); return undefined; },
-  createQuickPick() {
-    unsupported('window.createQuickPick');
-    const e = () => new EventEmitter<any>().event;
-    return {
-      items: [], value: '', placeholder: '', title: '', busy: false, matchOnDescription: false, matchOnDetail: false,
-      activeItems: [], selectedItems: [],
-      onDidChangeValue: e(), onDidAccept: e(), onDidHide: e(), onDidChangeSelection: e(), onDidChangeActive: e(), onDidTriggerButton: e(),
-      show: () => undefined, hide: () => undefined, dispose: () => undefined,
-    };
-  },
+  createQuickPick<T>(): QuickPick<T> { return new QuickPick<T>(); },
   async withProgress<R>(_options: unknown, task: (progress: { report(v: unknown): void }, token: unknown) => Thenable<R>): Promise<R> {
     return task({ report: () => undefined }, new CancellationTokenSource().token);
   },

@@ -30,8 +30,6 @@ export const UNAVAILABLE_COMMANDS: Record<string, string> = {
   'vaporview.displayAsFixedPoint': 'input box',
   'vaporview.displayAsFixedPointSigned': 'input box',
   'vaporview.addVariableByInstancePath': 'input box',
-  'vaporview.searchNetlist': 'quick pick',
-  'vaporview.searchScope': 'quick pick',
   'vaporview.saveViewerSession': 'file dialog',
   'vaporview.loadViewerSession': 'file dialog',
   'vaporview.viewVaporViewSettings': 'VS Code settings page',
