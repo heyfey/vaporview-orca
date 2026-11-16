@@ -3,9 +3,13 @@
 
 import { evaluateWhen, type WhenContext } from '../common/when';
 
-/** `icon` is the name of a lucide icon. Orca shows an icon in front of a menu item. */
+/**
+ * `icon` is the name of a lucide icon. Orca shows an icon in front of a menu item.
+ * `shortcut` is the key of the command, as text. `danger` marks an item that deletes.
+ * An entry has no property with the value `undefined`, because Orca refuses such an answer.
+ */
 export type MenuEntry =
-  | { kind: 'item'; command: string; title: string; icon?: string }
+  | { kind: 'item'; command: string; title: string; icon?: string; shortcut?: string; danger?: true }
   | { kind: 'submenu'; label: string; items: MenuEntry[]; icon?: string }
   | { kind: 'separator' };
 
@@ -91,12 +95,29 @@ const MENU_ICONS: Record<string, string> = {
   'vaporview.disableAnimations': 'zap-off',
 };
 
+/** Items that delete. Orca shows them in red. */
+const DANGER_COMMANDS = new Set(['vaporview.removeSignal', 'vaporview.deleteGroup', 'vaporview.removeSeparator']);
+
+/** A VS Code key such as `ctrl+r` as Orca shows it: `Ctrl+R`, and with symbols on macOS. */
+export function formatShortcut(key: string, mac: boolean): string {
+  const names: Record<string, string> = mac
+    ? { ctrl: '\u2303', shift: '\u21e7', alt: '\u2325', cmd: '\u2318', meta: '\u2318' }
+    : { ctrl: 'Ctrl', shift: '\u21e7', alt: 'Alt', cmd: 'Win', meta: 'Win' };
+  const parts = key.toLowerCase().split('+').filter(Boolean);
+  // "alt+=": the last part is the key, also when it is "+" or "=".
+  const last = key.endsWith('+') ? '+' : parts.pop() ?? '';
+  const keyName = last.startsWith('numpad_') ? `Num ${last.slice(7)}` : last.length === 1 ? last.toUpperCase() : last[0].toUpperCase() + last.slice(1);
+  const mods = parts.map((p) => names[p] ?? p);
+  return mac ? [...mods, keyName].join('') : [...mods, keyName].join('+');
+}
+
 export class Menus {
   private titles = new Map<string, string>();
   private icons = new Map<string, string>();
   private submenus = new Map<string, { label: string; when?: string }>();
   private menus: Record<string, RawItem[]>;
   readonly keybindings: Keybinding[];
+  private shortcuts = new Map<string, string>();
 
   constructor(packageJson: any) {
     const c = packageJson?.contributes ?? {};
@@ -108,6 +129,13 @@ export class Menus {
     for (const sub of c.submenus ?? []) { this.submenus.set(sub.id, { label: sub.label, when: sub.when }); }
     this.menus = c.menus ?? {};
     this.keybindings = (c.keybindings ?? []).filter((k: Keybinding) => !(k.command in UNAVAILABLE_COMMANDS));
+    const mac = process.platform === 'darwin';
+    for (const k of this.keybindings) {
+      const key = (mac && k.mac) || k.key;
+      // A command can have two keys. The menu shows the key of the main keyboard.
+      if (!this.shortcuts.has(k.command) || /numpad/.test(this.shortcuts.get(k.command)!)) { this.shortcuts.set(k.command, key); }
+    }
+    for (const [command, key] of this.shortcuts) { this.shortcuts.set(command, formatShortcut(key, mac)); }
   }
 
   title(command: string): string { return this.titles.get(command) ?? command; }
@@ -127,12 +155,18 @@ export class Menus {
       let entry: MenuEntry | undefined;
       if (raw.command) {
         if (raw.command in UNAVAILABLE_COMMANDS) { return; }
-        entry = { kind: 'item', command: raw.command, title: this.title(raw.command), icon: MENU_ICONS[raw.command] };
+        entry = { kind: 'item', command: raw.command, title: this.title(raw.command) };
+        if (MENU_ICONS[raw.command]) { entry.icon = MENU_ICONS[raw.command]; }
+        if (this.shortcuts.has(raw.command)) { entry.shortcut = this.shortcuts.get(raw.command); }
+        if (DANGER_COMMANDS.has(raw.command)) { entry.danger = true; }
       } else if (raw.submenu && depth < 4) {
         const sub = this.submenus.get(raw.submenu);
         if (!sub || !evaluateWhen(sub.when, context)) { return; }
         const items = this.resolve(raw.submenu, context, 'exclude', depth + 1);
-        if (items.length) { entry = { kind: 'submenu', label: sub.label, items, icon: MENU_ICONS[raw.submenu] }; }
+        if (items.length) {
+          entry = { kind: 'submenu', label: sub.label, items };
+          if (MENU_ICONS[raw.submenu]) { entry.icon = MENU_ICONS[raw.submenu]; }
+        }
       }
       if (!entry) { return; }
       if (!groups.has(name)) { groups.set(name, []); }

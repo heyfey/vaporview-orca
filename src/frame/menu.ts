@@ -4,7 +4,7 @@
 import { lucideIcon } from './icons';
 
 export type MenuEntry =
-  | { kind: 'item'; command: string; title: string; icon?: string }
+  | { kind: 'item'; command: string; title: string; icon?: string; shortcut?: string; danger?: true }
   | { kind: 'submenu'; label: string; items: MenuEntry[]; icon?: string }
   | { kind: 'separator' };
 
@@ -22,6 +22,9 @@ const STYLE = `
 .vv-menu-sep { height: 1px; margin: 6px -6px; background: color-mix(in srgb, var(--orca-popover-foreground) 10%, transparent); }
 .vv-menu-arrow { display: inline-flex; flex: none; width: 14px; height: 14px; margin-left: auto; padding-left: 16px; opacity: 0.7; }
 .vv-menu-arrow svg { width: 14px; height: 14px; }
+.vv-menu-shortcut { margin-left: auto; padding-left: 16px; color: var(--orca-muted-foreground); }
+.vv-menu-item.danger, .vv-menu-item.danger .vv-menu-icon { color: var(--orca-destructive); }
+.vv-menu-item.danger:hover { background: color-mix(in srgb, var(--orca-destructive) 20%, transparent); }
 `;
 
 let open: HTMLElement[] = [];
@@ -70,9 +73,18 @@ function build(entries: MenuEntry[], level: number, pick: (command: string) => v
     row.append(label);
     if (entry.kind === 'item') {
       row.dataset.command = entry.command;
+      row.dataset.title = entry.title;
+      if (entry.danger) { row.classList.add('danger'); }
+      if (entry.shortcut) {
+        const shortcut = document.createElement('span');
+        shortcut.className = 'vv-menu-shortcut';
+        shortcut.textContent = entry.shortcut;
+        row.append(shortcut);
+      }
       row.addEventListener('mouseenter', closeDeeper);
       row.addEventListener('click', (e) => { e.stopPropagation(); closeMenu(); pick(entry.command); });
     } else {
+      row.dataset.title = entry.label;
       row.append(lucideIcon('chevron-right', 'vv-menu-arrow'));
       const show = () => {
         closeDeeper();

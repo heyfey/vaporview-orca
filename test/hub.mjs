@@ -28,7 +28,16 @@ const orca = {
     },
   },
 };
-const req = (name, input = {}) => handlers.get(name)(JSON.parse(JSON.stringify(input)), { panel: { id: 'x', surface: 'panel', contributionId: 'y' }, signal: new AbortController().signal });
+// Orca refuses an answer that is not strict JSON, for example a property with the value undefined.
+const assertJson = (name, value, where = 'answer') => {
+  if (value === undefined && where !== 'answer') { throw new Error(`${name}: ${where} is undefined, which Orca refuses`); }
+  if (value && typeof value === 'object') { for (const [k, v] of Object.entries(value)) { assertJson(name, v, `${where}.${k}`); } }
+};
+const req = async (name, input = {}) => {
+  const answer = await handlers.get(name)(JSON.parse(JSON.stringify(input)), { panel: { id: 'x', surface: 'panel', contributionId: 'y' }, signal: new AbortController().signal });
+  assertJson(name, answer);
+  return answer;
+};
 const check = (ok, what) => { console.log(ok ? 'ok  ' : 'FAIL', what); if (!ok) { process.exitCode = 1; } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -93,6 +102,8 @@ check(scopeMenu.some((m) => m.title === 'Add All Variables in Scope (Recursive)'
 const signalMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'signal', width: 8, type: 'Wire' } })).items;
 const format = signalMenu.find((m) => m.kind === 'submenu' && m.label === 'Format Values');
 check(!!format && format.items.some((m) => m.title === 'Hexadecimal') && signalMenu.some((m) => m.title === 'Remove Variable'), `viewer menu of a signal (${signalMenu.filter((m) => m.kind !== 'separator').map((m) => m.title ?? m.label + ' >').join(', ')})`);
+check(signalMenu.find((m) => m.title === 'Remove Variable')?.danger === true && signalMenu.find((m) => m.title === 'Show in Netlist View')?.shortcut === 'Ctrl+R', 'viewer menu: "Remove Variable" is a delete item, "Show in Netlist View" shows its key');
+check(signalMenu.find((m) => m.label === 'Color')?.items.find((m) => m.title === 'Color 1')?.shortcut === '1', 'a submenu item shows its key');
 const bitMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'signal', width: 1 } })).items;
 check(!bitMenu.some((m) => m.label === 'Format Values') && !bitMenu.some((m) => m.title === 'New Signal From Bit Range...'), 'viewer menu of a 1-bit signal has no "Format Values"');
 const rulerMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'ruler', rulerLines: true } })).items;

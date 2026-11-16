@@ -44,7 +44,7 @@ function snapshot(): { summary: object; image: string } {
       labels: text('.waveform-label'),
       values: text('.value-display-item'),
       canvases: canvases.map((c) => [c.id || c.className, c.width, c.height]),
-      menu: [...document.querySelectorAll('.vv-menu')].map((m) => [...m.children].map((n) => (n.className === 'vv-menu-sep' ? '---' : n.textContent ?? ''))),
+      menu: [...document.querySelectorAll('.vv-menu')].map((m) => [...m.children].map((n) => (n.className === 'vv-menu-sep' ? '---' : [(n as HTMLElement).dataset.title, n.querySelector('.vv-menu-shortcut')?.textContent, n.classList.contains('danger') ? '(red)' : ''].filter(Boolean).join(' ')))),
       clipboard: lastClipboardResult,
       errors: pageErrors.slice(-10),
     },
@@ -114,7 +114,7 @@ function replayInput(events: any[]): void {
       (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keyup', init));
     } else if (ev.type === 'menu') {
       // Selects an item of the open context menu by its text.
-      const item = [...document.querySelectorAll('.vv-menu-item')].find((n) => n.textContent === ev.text) as HTMLElement | undefined;
+      const item = [...document.querySelectorAll('.vv-menu-item')].find((n) => (n as HTMLElement).dataset.title === ev.text) as HTMLElement | undefined;
       if (item) { item.dispatchEvent(new MouseEvent(ev.hover ? 'mouseenter' : 'click', { bubbles: !ev.hover, cancelable: true })); } else { pageErrors.push(`input: no menu item "${ev.text}"`); }
     }
   }
