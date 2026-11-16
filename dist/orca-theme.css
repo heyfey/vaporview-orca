@@ -1,0 +1,67 @@
+/* The vaporview webview reads VS Code theme variables. Orca gives 20 `--orca-*` variables.
+   This file maps one set to the other. */
+:root {
+  --vscode-font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --vscode-font-size: 13px;
+  --vscode-editor-font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace;
+  --vscode-editor-font-size: 13px;
+  --vscode-editor-background: var(--orca-background);
+  --vscode-editor-foreground: var(--orca-foreground);
+  --vscode-foreground: var(--orca-foreground);
+  --vscode-icon-foreground: var(--orca-foreground);
+  --vscode-disabledForeground: var(--orca-muted-foreground);
+  --vscode-focusBorder: var(--orca-ring);
+  --vscode-contrastActiveBorder: transparent;
+  --vscode-textLink-foreground: var(--orca-primary);
+  --vscode-list-activeSelectionBackground: var(--orca-accent);
+  --vscode-list-activeSelectionForeground: var(--orca-accent-foreground);
+  --vscode-list-errorForeground: var(--orca-destructive);
+  --vscode-list-dropBackground: var(--orca-accent);
+  --vscode-toolbar-hoverBackground: var(--orca-accent);
+  --vscode-input-background: var(--orca-background);
+  --vscode-input-foreground: var(--orca-foreground);
+  --vscode-input-border: var(--orca-border);
+  --vscode-inputOption-activeBackground: var(--orca-primary);
+  --vscode-inputOption-activeForeground: var(--orca-primary-foreground);
+  --vscode-inputOption-activeBorder: var(--orca-ring);
+  --vscode-inputValidation-errorBorder: var(--orca-destructive);
+  --vscode-editorHoverWidget-background: var(--orca-popover);
+  --vscode-editorHoverWidget-foreground: var(--orca-popover-foreground);
+  --vscode-editorHoverWidget-border: var(--orca-border);
+  --vscode-editorWidget-background: var(--orca-popover);
+  --vscode-widget-border: var(--orca-border);
+  --vscode-widget-shadow: rgba(0, 0, 0, 0.36);
+  --vscode-sash-hoverBorder: var(--orca-ring);
+  --vscode-editorIndentGuide-background: var(--orca-border);
+  --vscode-editorIndentGuide-background1: var(--orca-border);
+  --vscode-editorLineNumber-foreground: var(--orca-muted-foreground);
+  --vscode-editorLineNumber-activeForeground: var(--orca-foreground);
+  --vscode-editorActiveLineNumber-foreground: var(--orca-foreground);
+  --vscode-editorCursor-foreground: var(--orca-foreground);
+  --vscode-editor-selectionBackground: color-mix(in srgb, var(--orca-primary) 35%, transparent);
+  --vscode-editor-inactiveSelectionBackground: color-mix(in srgb, var(--orca-primary) 20%, transparent);
+  --vscode-editorOverviewRuler-selectionHighlightForeground: color-mix(in srgb, var(--orca-primary) 50%, transparent);
+  --vscode-scrollbarSlider-background: color-mix(in srgb, var(--orca-foreground) 20%, transparent);
+  --vscode-scrollbarSlider-hoverBackground: color-mix(in srgb, var(--orca-foreground) 30%, transparent);
+  --vscode-scrollbarSlider-activeBackground: color-mix(in srgb, var(--orca-foreground) 40%, transparent);
+  --vscode-terminal-findMatchBackground: #a8ac94;
+  --vscode-terminalOverviewRuler-findMatchForeground: #d186167e;
+  /* Signal colors. VS Code takes them from the color theme. Orca has no such colors. */
+  --vscode-debugTokenExpression-number: #b5cea8;
+  --vscode-debugTokenExpression-string: #ce9178;
+  --vscode-debugTokenExpression-type: #4a90e2;
+  --vscode-debugTokenExpression-name: #c586c0;
+  --vscode-debugTokenExpression-error: #f48771;
+}
+:root.light {
+  --vscode-debugTokenExpression-number: #098658;
+  --vscode-debugTokenExpression-string: #a31515;
+  --vscode-debugTokenExpression-type: #0451a5;
+  --vscode-debugTokenExpression-name: #9b46b0;
+  --vscode-debugTokenExpression-error: #e51400;
+}
+html, body { height: 100%; margin: 0; background: var(--orca-background); color: var(--orca-foreground); }
+#vaporview-orca-status { position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; padding: 24px; text-align: center; font: 13px system-ui, sans-serif; color: var(--orca-muted-foreground); background: var(--orca-background); }
+#vaporview-orca-status.error { color: var(--orca-destructive); }
+#vaporview-orca-status { flex-direction: column; gap: 12px; }
+#vaporview-orca-status button { font: inherit; color: var(--orca-primary-foreground); background: var(--orca-primary); border: 0; border-radius: 4px; padding: 4px 12px; cursor: pointer; }

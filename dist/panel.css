@@ -1,0 +1,122 @@
+/* The panel copies the look of the Orca file explorer. Orca gives an HTML panel only color
+   variables (--orca-*), so the sizes below are the values of the Orca source:
+   rows: FileExplorerRow.tsx (12 px text, 4 px 8 px padding, 16 px indent, 26 px pitch)
+   corners: Orca has a radius of 10 px. A row has 0.6 of it ("rounded-sm"), a field 0.8 ("rounded-md").
+   field: FileExplorerNameFilter.tsx (32 px high, border, input color at 50 percent)
+   scroll bar: src/shared/styles/scrollbar-sleek.css
+   font: Geist, the interface font of Orca (assets/fonts, SIL Open Font License)
+   icons: lucide, the icon set of Orca (src/frame/icons.ts) */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body { margin: 0; height: 100%; }
+body {
+  font: 12px/16px 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--orca-foreground);
+  /* The Orca sidebar color is not one of the variables. `card` has the same value in the dark theme. */
+  background: var(--orca-card);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; }
+
+.vv-panel { display: flex; flex-direction: column; height: 100vh; }
+
+/* Scroll bar, as the scroll area of Orca (components/ui/scroll-area.tsx): a round thumb of about
+   10 px in a clear track of 16 px, in the muted text color at 40 percent, 60 percent under the pointer. */
+.vv-scroll::-webkit-scrollbar { width: 16px; height: 16px; }
+.vv-scroll::-webkit-scrollbar-track { background: transparent; }
+.vv-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--orca-muted-foreground, #737373) 40%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  min-height: 36px;
+}
+.vv-scroll::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 60%, transparent); }
+.vv-scroll::-webkit-scrollbar-corner { background: transparent; }
+
+/* Titles. The Orca sidebar uses 12 px for titles, rows, and fields, and 11 px for notes.
+   A title differs only in its weight (AiVaultPanelHeader.tsx: text-xs font-semibold). */
+/* A title row is 32 px high with 8 px at the sides, as the title row of the Orca file explorer
+   (FileExplorerToolbar.tsx: h-8 px-2 border-b). */
+.vv-header, .vv-section {
+  display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 32px; min-height: 32px; padding: 0 8px;
+  font-weight: 600; border-bottom: 1px solid var(--orca-border);
+}
+/* A line above the second title closes the part above it. */
+.vv-section { border-top: 1px solid var(--orca-border); }
+.vv-section-buttons { display: flex; }
+
+/* Buttons */
+/* A filled button: the "secondary" color of Orca, with a 1 px border. */
+.vv-button {
+  height: 24px; padding: 0 8px; cursor: pointer; font-weight: 500; color: var(--orca-secondary-foreground); background: var(--orca-secondary);
+  box-sizing: border-box; border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 10px) * 0.8);
+}
+.vv-button:hover { background: color-mix(in srgb, var(--orca-secondary) 80%, var(--orca-foreground)); }
+.vv-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 20px; padding: 0;
+  color: var(--orca-muted-foreground); background: transparent; border: 0; border-radius: calc(var(--orca-radius, 10px) * 0.6); cursor: pointer; font-size: 14px; line-height: 1;
+}
+.vv-icon:hover { color: var(--orca-foreground); background: var(--orca-accent); }
+.vv-icon.codicon { font-size: 14px; }
+.vv-icon svg { width: 14px; height: 14px; }
+
+/* Text field, as "Find files" of Orca */
+.vv-field {
+  display: flex; align-items: center; gap: 4px; box-sizing: border-box; height: 32px; margin: 8px; padding: 0 8px;
+  border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 10px) * 0.8);
+  background: color-mix(in srgb, var(--orca-input) 50%, transparent);
+}
+.vv-field:focus-within { border-color: var(--orca-ring); box-shadow: 0 0 0 1px var(--orca-ring); }
+.vv-field input { flex: 1; min-width: 0; padding: 4px 0; color: var(--orca-foreground); background: transparent; border: 0; outline: none; }
+.vv-field input::placeholder { color: var(--orca-muted-foreground); }
+.vv-field-icon { display: inline-flex; flex: none; width: 14px; height: 14px; color: var(--orca-muted-foreground); }
+.vv-field-icon svg { width: 14px; height: 14px; }
+.vv-field .vv-icon { width: 16px; height: 16px; }
+.vv-field .vv-icon svg { width: 12px; height: 12px; }
+
+/* Rows: list of waveforms, tree, search results, file browser */
+.vv-rows { padding: 6px 4px; overflow-x: hidden; overflow-y: auto; }
+.vv-row, .vv-node-row, .vv-entry, .vv-result {
+  display: flex; align-items: center; gap: 4px; box-sizing: border-box; min-height: 24px; margin-bottom: 2px; padding: 4px 8px;
+  border-radius: calc(var(--orca-radius, 10px) * 0.6); white-space: nowrap; cursor: default; user-select: none;
+}
+.vv-row:hover, .vv-node-row:hover, .vv-entry:hover, .vv-result:hover { background: var(--orca-accent); }
+.vv-row.active, .vv-node-row.selected { background: var(--orca-accent); color: var(--orca-accent-foreground); }
+.vv-name { flex: none; max-width: 75%; overflow: hidden; text-overflow: ellipsis; }
+.vv-dim { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--orca-muted-foreground); }
+.vv-row .vv-icon, .vv-inline { visibility: hidden; }
+.vv-row:hover .vv-icon, .vv-node-row:hover .vv-inline { visibility: visible; }
+.vv-list { flex: none; max-height: 30vh; }
+.vv-tree { flex: 1; min-height: 0; }
+.vv-twist { display: inline-flex; flex: none; width: 12px; height: 12px; color: var(--orca-muted-foreground); transition: transform 0.15s; }
+.vv-twist.open { transform: rotate(90deg); }
+.vv-twist svg { width: 12px; height: 12px; }
+/* Icons have one color, as the icons of the Orca file explorer. */
+.vv-node-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 16px; height: 16px; font-size: 14px; color: var(--orca-muted-foreground); }
+.vv-node-icon svg { width: 14px; height: 14px; }
+.vv-node-row.selected .vv-node-icon:not(.vv-vaporview-icon), .vv-node-row:hover .vv-node-icon:not(.vv-vaporview-icon) { color: var(--orca-foreground); }
+
+/* Messages and empty states */
+.vv-message { display: none; padding: 4px 12px; color: var(--orca-destructive); }
+.vv-message[data-level="info"] { color: var(--orca-muted-foreground); }
+.vv-message[data-level="warning"] { color: var(--orca-foreground); }
+.vv-empty { padding: 12px; text-align: center; font-size: 11px; color: var(--orca-muted-foreground); }
+
+/* File browser and search */
+.vv-browser, .vv-search { border-bottom: 1px solid var(--orca-border); }
+.vv-browser:empty, .vv-search:empty { display: none; }
+.vv-entries { max-height: 40vh; border-top: 1px solid var(--orca-border); }
+.vv-search-info { padding: 0 12px 8px; font-size: 11px; color: var(--orca-muted-foreground); }
+.vv-search-info:empty { display: none; }
+.vv-result { align-items: flex-start; }
+.vv-result-text { flex: 1; min-width: 0; }
+.vv-result-line { display: flex; gap: 6px; }
+.vv-result-detail { overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
