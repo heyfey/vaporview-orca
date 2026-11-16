@@ -397,7 +397,10 @@ export default async function activate(orca: any): Promise<void> {
    * vaporview has one view for each waveform.
    */
   async function showTab(entry: Entry): Promise<void> {
-    if (await entry.link.isLive()) { return; }
+    const started = Date.now();
+    const live = await entry.link.isLive();
+    log(`show ${path.basename(entry.waveformPath)}: ${live ? 'a page shows it, no tab opens' : 'no page answers, Orca opens the tab'} (${Date.now() - started} ms, page ${entry.link.instance ?? 'none'})`);
+    if (live) { return; }
     await openTab(entry);
   }
 
