@@ -113,6 +113,18 @@ check(!bitMenu.some((m) => m.label === 'Format Values') && !bitMenu.some((m) => 
 const rulerMenu = (await req('menu.webview', { docKey: hello.docKey, context: { webviewSection: 'ruler', rulerLines: true } })).items;
 check(rulerMenu.some((m) => m.title === 'Hide Ruler Lines') && !rulerMenu.some((m) => m.title === 'Show Ruler Lines'), 'viewer menu of the ruler follows the state');
 
+// A click on the row of a waveform that a page shows now must not open a second tab.
+{
+  const pollLive = async () => JSON.parse((await req('editor.poll', { docKey: hello.docKey, instance: 'f2' })).messages);
+  const opensBefore = calls.filter((c) => c.method === 'editor.open').length;
+  const probe = pollLive();                                  // the live page has a poll open
+  const select = req('panel.select', { docKey: hello.docKey });
+  await probe;                                               // the worker asks if the page is alive
+  void pollLive();                                           // the page polls again, so it is alive
+  await select;
+  check(calls.filter((c) => c.method === 'editor.open').length === opensBefore, 'select of a waveform that shows opens no second tab');
+}
+
 // Netlist search: the vaporview quick pick shows in the panel.
 check(top.title.some((b) => b.command === 'vaporview.searchNetlist' && b.icon === 'search'), 'the tree title has the "Search Netlist" button');
 const lastSearch = () => posts.filter((p) => p.event === 'search.update').at(-1)?.payload;

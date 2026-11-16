@@ -269,6 +269,14 @@ search in the panel, but the search field does not get the focus.
   waveform to the newest tab, and the older tab shows a message with a "Show here" button.
 - **Proposal.** A property of a custom editor in the manifest, in the style of the VS Code option
   `supportsMultipleEditorsPerDocument: false`: Orca shows the open tab and makes no second tab.
+  Or an option of `editor.open` that shows the tab of the file in whatever tab group it is. Orca
+  has the parts: its own open function takes a target group
+  (`src/renderer/src/store/slices/editor/opening/open-file-action.ts`), but `editor.open` of the
+  plugin API gives it no option.
+- **The plugin today.** Before it calls `editor.open`, the worker asks the page of the waveform if
+  it is alive. If a page answers, the waveform shows in some tab group, and the worker opens
+  nothing. The worker cannot give that tab the focus, and it cannot find a tab that is behind a
+  different tab.
 - **Backward compatible.** A new optional property.
 
 ## PR-5: keep a hidden frame alive

@@ -33,7 +33,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Restore after a restart | VS Code restores the tab and its state | Same | yes | Orca | Tested with a restart of the plugin worker, not of Orca |
 | Reload file | "Reload File" command | Same | yes | no | In the tree menu. The button in the editor title is not possible (no such contribution in Orca). |
 | Auto reload | Check box in the control bar | Same | yes | no | For a file on a `\\wsl.localhost` path the plugin reads the change time one time each second, because Node gets no change events there |
-| Same file in two tabs of a split view | Not possible. VS Code has one editor for each waveform (`supportsMultipleEditorsPerDocument: false`). | Tweaked | yes | no | Orca opens a second tab when the focus is in a different tab group. vaporview has one view for each waveform, so only the newest tab shows it. The older tab shows "This waveform shows in a different tab" with a "Show here" button. PR-12 |
+| Same file in two tabs of a split view | Not possible. VS Code has one editor for each waveform (`supportsMultipleEditorsPerDocument: false`). | Tweaked | yes | Node | If a tab shows the waveform, also in a different tab group, "Open Waveform" and a click on the list row open no second tab. The plugin cannot move the keyboard focus to that tab. If the person opens the file a second time by hand, only the newest tab shows the waveform, and the older tab shows "This waveform shows in a different tab" with a "Show here" button. PR-12 |
 | Same file in two workspaces | Not applicable | Tweaked | yes | no | Planned: one tab for each workspace. Not tested. |
 
 ## File formats

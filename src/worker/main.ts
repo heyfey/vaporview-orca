@@ -381,7 +381,8 @@ export default async function activate(orca: any): Promise<void> {
     entry.saveTimer = setTimeout(() => { if (entries.has(entry.key)) { writeSession(entry); } }, 800);
   }
 
-  async function showTab(entry: Entry): Promise<void> {
+  /** Asks Orca to open the tab of the waveform. Orca opens it in the tab group that has the focus. */
+  async function openTab(entry: Entry): Promise<void> {
     const file = sessionFileFor(entry);
     if (!file || !entry.workspace.id || !entry.workspace.path) {
       throw Object.assign(new Error('Orca did not give the folder of this workspace.'), { code: 'action_failed' });
@@ -390,11 +391,21 @@ export default async function activate(orca: any): Promise<void> {
     await orca.host.call('editor.open', { workspaceId: entry.workspace.id, path: relative });
   }
 
-  /** Before a command changes the view: make sure that a frame shows the document. */
+  /**
+   * Shows the waveform. If a page shows it now, also in a different tab group of a split view,
+   * nothing opens: Orca makes a second tab for a file that is open in a different group, and
+   * vaporview has one view for each waveform.
+   */
+  async function showTab(entry: Entry): Promise<void> {
+    if (await entry.link.isLive()) { return; }
+    await openTab(entry);
+  }
+
+  /** Before a command changes the view: make sure that a page shows the waveform. */
   async function ensureFrame(entry: Entry): Promise<void> {
     if (await entry.link.isLive()) { return; }
     const started = entry.link.whenStarted();
-    await showTab(entry);
+    await openTab(entry);
     if (!(await started)) { log('the editor frame did not start in time'); }
   }
 
