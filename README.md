@@ -147,6 +147,9 @@ and backward compatible, so that upstream can merge it.
 
 ## License
 
-License: AGPL-3.0, the same as vaporview. The font in `assets/fonts` is Geist, under the SIL Open
-Font License (`assets/fonts/Geist-OFL.txt`). The icon shapes in `src/frame/lucide-icons.ts` are from the
-lucide icon set, under the ISC license.
+GPL-3.0, the same as vaporview. See [LICENSE](LICENSE).
+
+- The font in `assets/fonts` is Geist, under the SIL Open Font License
+  (`assets/fonts/Geist-OFL.txt`).
+- The icon shapes in `src/frame/lucide-icons.ts` are from the lucide icon set, under the ISC
+  license.

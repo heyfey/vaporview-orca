@@ -76,7 +76,7 @@ Worktrees for the first three candidates (from the local clone, commit `7731665e
 | PR-2 | `plugin-open-file-dialog` | `feat/plugin-open-file-dialog` |
 | PR-3 | `plugin-editor-tab-events` | `feat/plugin-editor-tab-events` |
 
-Issue drafts: [orca-issue-drafts.md](orca-issue-drafts.md).
+Issue drafts: [drafts/orca-issue-drafts.md](drafts/orca-issue-drafts.md).
 
 ## Orca built-ins with the same use model
 

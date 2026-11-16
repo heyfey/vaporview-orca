@@ -160,7 +160,7 @@ No change for a user. No setting, command, or API changes.
 - The extension host log of a VS Code session with two VCD files had the line
   `Error: EBADF: bad file descriptor, close` (2026-11-16). A second run with three files, two of
   them closed, gave the same error, and "add signal" still worked in the last file.
-- In the Orca plugin the same defect stops the plugin worker, see D10 in `feature-parity.md`.
+- In the Orca plugin the same defect stops the plugin worker, see D10 in `../feature-parity.md`.
 - The Node harness is `test/two-close.mjs` of this project (the worker of the plugin with the
   Orca stand-in of `test/hub.mjs`). It ran against the upstream file and against the fixed file.
   It is not a part of `npm test`, because it fails until the submodule has the fix.
