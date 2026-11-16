@@ -57,7 +57,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Value at the marker | Column beside the name | Same | yes | Orca | |
 | Control bar (zoom buttons, edge steps, time field, value search, auto reload) | Webview HTML | Same | yes | no | Same code. Not in the test image, because the image holds only the canvases. |
 | Signal load | Binary messages | Tweaked | yes | Orca | Base64 text in JSON, pulled by the page in batches. Slow for large signals. PR-6 |
-| Context menu of a signal | Native VS Code menu | Tweaked | yes | Orca (events) | HTML menu in the page. The items and their conditions come from the vaporview `package.json`. |
+| Context menu of a signal | Native VS Code menu | Tweaked | yes | Orca (events) | HTML menu in the page, with the sizes of the Orca menus. The items and their conditions come from the vaporview `package.json`. Each item has a lucide icon, as in Orca (VS Code menus have no icons). The icons are in `src/worker/menus.ts`. |
 | Context menu of the ruler | Native VS Code menu | Tweaked | yes | Orca (events) | Same method |
 | Context menu of a group or separator | Native VS Code menu | Tweaked | yes | no | Same method |
 | Remove variable | Menu | Same | yes | Orca (events) | |

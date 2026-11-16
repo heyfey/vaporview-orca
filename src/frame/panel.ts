@@ -374,6 +374,12 @@ async function refresh(context?: unknown): Promise<void> {
 orca.plugin.on('panel.changed', (next: ListState) => { state = next; renderList(); });
 orca.plugin.on('tree.changed', (p: { full?: boolean }) => reloadTree(p?.full === true));
 orca.plugin.on('search.update', (s: SearchState) => renderSearch(s));
+// Development aid: opens the right-click menu of a tree row, for a screenshot.
+orca.plugin.on('debug.menu', (p: { row?: number }) => {
+  const row = document.querySelectorAll('.vv-node-row')[p?.row ?? 0] as HTMLElement | undefined;
+  const r = row?.getBoundingClientRect();
+  if (row && r) { row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 80, clientY: r.top + 12 })); }
+});
 orca.plugin.on('tree.reveal', (p: { path: number[]; select: boolean }) => void run(() => reveal(p.path ?? [], p.select)));
 orca.plugin.on('panel.message', (m: { level: string; message: string }) => showMessage(m.message, m.level));
 orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });

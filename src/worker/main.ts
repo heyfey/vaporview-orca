@@ -691,6 +691,9 @@ export default async function activate(orca: any): Promise<void> {
     return JSON.parse(JSON.stringify({ settings }));
   });
 
+  // Development aid: opens the right-click menu of a tree row in the panel.
+  orca.panels.handle('debug.panelMenu', (input: any) => { orca.panels.post('debug.menu', { row: input?.row ?? 0 }); return { ok: true }; });
+
   // Development aid: sends pointer, wheel, or key events to the page of the active waveform.
   orca.panels.handle('debug.input', async (input: any) => {
     const entry = activeEntry();

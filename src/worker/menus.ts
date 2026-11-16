@@ -3,9 +3,10 @@
 
 import { evaluateWhen, type WhenContext } from '../common/when';
 
+/** `icon` is the name of a lucide icon. Orca shows an icon in front of a menu item. */
 export type MenuEntry =
-  | { kind: 'item'; command: string; title: string }
-  | { kind: 'submenu'; label: string; items: MenuEntry[] }
+  | { kind: 'item'; command: string; title: string; icon?: string }
+  | { kind: 'submenu'; label: string; items: MenuEntry[]; icon?: string }
   | { kind: 'separator' };
 
 export type Keybinding = { key: string; mac?: string; command: string; when?: string };
@@ -35,6 +36,59 @@ export const UNAVAILABLE_COMMANDS: Record<string, string> = {
   'vaporview.viewVaporViewSettings': 'VS Code settings page',
   'vaporview.showReadme': 'VS Code markdown preview',
   'vaporview.openRemoteViewer': 'input box, and remote access is deferred',
+};
+
+/**
+ * The icon of a menu item, as the name of a lucide icon. VS Code menus have no icons, so
+ * vaporview gives none. An item that is not here has no icon.
+ */
+const MENU_ICONS: Record<string, string> = {
+  // tree
+  'vaporview.searchScope': 'search',
+  'vaporview.addSelected': 'plus',
+  'vaporview.removeSelectedNetlist': 'minus',
+  'vaporview.addAllInScopeShallow': 'list-plus',
+  'vaporview.addAllInScopeRecursive': 'list-tree',
+  'vaporview.removeAllInScope': 'list-x',
+  'vaporview.showInViewer': 'eye',
+  'vaporview.copyName': 'copy',
+  'vaporview.reloadFile': 'refresh-cw',
+  // viewer: signal
+  'vaporview.valueFormat': 'hash',
+  'vaporview.renderType': 'chart-line',
+  'vaporview.highlightEdge': 'trending-up',
+  'vaporview.valueColor': 'palette',
+  'vaporview.rowHeight': 'unfold-vertical',
+  'vaporview.nameType': 'tag',
+  'vaporview.increaseVerticalScale': 'zoom-in',
+  'vaporview.decreaseVerticalScale': 'zoom-out',
+  'vaporview.resetVerticalScale': 'rotate-ccw',
+  'vaporview.removeSignal': 'trash',
+  'vaporview.showInNetlistView': 'locate',
+  'vaporview.copyValueAtMarker': 'clipboard-copy',
+  'vaporview.renameSignalGroup': 'pencil',
+  'vaporview.ungroupSignals': 'ungroup',
+  'vaporview.deleteGroup': 'trash',
+  'vaporview.removeSeparator': 'trash',
+  'vaporview.newSignalGroup': 'folder-plus',
+  'vaporview.newGroupFromSelection': 'group',
+  'vaporview.newSeparator': 'separator-horizontal',
+  'vaporview.createSignals': 'split',
+  'vaporview.waveDrom': 'audio-waveform',
+  'vaporview.copyWaveDrom': 'copy',
+  'vaporview.setWaveDromClockRising': 'trending-up',
+  'vaporview.setWaveDromClockFalling': 'trending-down',
+  'vaporview.unsetWaveDromClock': 'x',
+  // viewer: ruler
+  'vaporview.timeUnit': 'timer',
+  'vaporview.rulerTimeIncrement': 'ruler',
+  'vaporview.scrollMode': 'mouse',
+  'vaporview.showRulerLines': 'grid-3x3',
+  'vaporview.hideRulerLines': 'grid-3x3',
+  'vaporview.fillBitVector': 'paint-bucket',
+  'vaporview.outlineBitVector': 'square-dashed',
+  'vaporview.enableAnimations': 'zap',
+  'vaporview.disableAnimations': 'zap-off',
 };
 
 export class Menus {
@@ -73,12 +127,12 @@ export class Menus {
       let entry: MenuEntry | undefined;
       if (raw.command) {
         if (raw.command in UNAVAILABLE_COMMANDS) { return; }
-        entry = { kind: 'item', command: raw.command, title: this.title(raw.command) };
+        entry = { kind: 'item', command: raw.command, title: this.title(raw.command), icon: MENU_ICONS[raw.command] };
       } else if (raw.submenu && depth < 4) {
         const sub = this.submenus.get(raw.submenu);
         if (!sub || !evaluateWhen(sub.when, context)) { return; }
         const items = this.resolve(raw.submenu, context, 'exclude', depth + 1);
-        if (items.length) { entry = { kind: 'submenu', label: sub.label, items }; }
+        if (items.length) { entry = { kind: 'submenu', label: sub.label, items, icon: MENU_ICONS[raw.submenu] }; }
       }
       if (!entry) { return; }
       if (!groups.has(name)) { groups.set(name, []); }

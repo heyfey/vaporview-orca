@@ -1,19 +1,27 @@
 // A context menu drawn in the page. VS Code draws its menus itself. Orca has no menu for a
 // plugin frame, so the editor frame and the panel use this one.
 
+import { lucideIcon } from './icons';
+
 export type MenuEntry =
-  | { kind: 'item'; command: string; title: string }
-  | { kind: 'submenu'; label: string; items: MenuEntry[] }
+  | { kind: 'item'; command: string; title: string; icon?: string }
+  | { kind: 'submenu'; label: string; items: MenuEntry[]; icon?: string }
   | { kind: 'separator' };
 
+// The sizes are the values of the Orca menus (components/ui/menu-item.ts): rows of 26 px with
+// 13 px text, icons of 15 px in the muted text color, 6 px around the items.
 const STYLE = `
-.vv-menu { position: fixed; z-index: 10000; min-width: 180px; max-width: 320px; max-height: 80vh; overflow: auto; padding: 4px;
-  font: 12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--orca-popover-foreground); background: var(--orca-popover);
-  border: 1px solid var(--orca-border); border-radius: var(--orca-radius, 6px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); user-select: none; }
-.vv-menu-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 8px; border-radius: 4px; cursor: default; white-space: nowrap; }
-.vv-menu-item:hover, .vv-menu-item.open { background: var(--orca-accent); color: var(--orca-accent-foreground); }
-.vv-menu-sep { height: 1px; margin: 4px 0; background: var(--orca-border); }
-.vv-menu-arrow { opacity: 0.7; }
+@font-face { font-family: 'Geist'; src: url('fonts/Geist-Variable.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+.vv-menu { position: fixed; z-index: 10000; box-sizing: border-box; min-width: 11rem; max-width: 360px; max-height: 80vh; overflow-x: hidden; overflow-y: auto; padding: 6px;
+  font: 400 13px/16px 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--orca-popover-foreground); background: var(--orca-popover);
+  border: 1px solid var(--orca-border); border-radius: var(--orca-radius, 10px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); user-select: none; -webkit-font-smoothing: antialiased; }
+.vv-menu-item { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: calc(var(--orca-radius, 10px) * 0.8); cursor: default; white-space: nowrap; }
+.vv-menu-item:hover, .vv-menu-item.open { background: color-mix(in srgb, var(--orca-popover-foreground) 14%, transparent); }
+.vv-menu-icon { display: inline-flex; flex: none; width: 15px; height: 15px; color: var(--orca-muted-foreground); }
+.vv-menu-icon svg { width: 15px; height: 15px; stroke-width: 1.5; }
+.vv-menu-sep { height: 1px; margin: 6px -6px; background: color-mix(in srgb, var(--orca-popover-foreground) 10%, transparent); }
+.vv-menu-arrow { display: inline-flex; flex: none; width: 14px; height: 14px; margin-left: auto; padding-left: 16px; opacity: 0.7; }
+.vv-menu-arrow svg { width: 14px; height: 14px; }
 `;
 
 let open: HTMLElement[] = [];
@@ -45,6 +53,7 @@ function build(entries: MenuEntry[], level: number, pick: (command: string) => v
     open = open.filter((m) => Number(m.dataset.level) <= level);
     menu.querySelectorAll('.open').forEach((n) => n.classList.remove('open'));
   };
+  const withIcons = entries.some((e) => e.kind !== 'separator' && !!e.icon);
   for (const entry of entries) {
     if (entry.kind === 'separator') {
       const sep = document.createElement('div');
@@ -54,6 +63,8 @@ function build(entries: MenuEntry[], level: number, pick: (command: string) => v
     }
     const row = document.createElement('div');
     row.className = 'vv-menu-item';
+    // If one item of the menu has an icon, each item keeps the same space for it.
+    if (withIcons) { row.append(entry.icon ? lucideIcon(entry.icon, 'vv-menu-icon') : Object.assign(document.createElement('span'), { className: 'vv-menu-icon' })); }
     const label = document.createElement('span');
     label.textContent = entry.kind === 'item' ? entry.title : entry.label;
     row.append(label);
@@ -62,10 +73,7 @@ function build(entries: MenuEntry[], level: number, pick: (command: string) => v
       row.addEventListener('mouseenter', closeDeeper);
       row.addEventListener('click', (e) => { e.stopPropagation(); closeMenu(); pick(entry.command); });
     } else {
-      const arrow = document.createElement('span');
-      arrow.className = 'vv-menu-arrow';
-      arrow.textContent = '›';
-      row.append(arrow);
+      row.append(lucideIcon('chevron-right', 'vv-menu-arrow'));
       const show = () => {
         closeDeeper();
         row.classList.add('open');
