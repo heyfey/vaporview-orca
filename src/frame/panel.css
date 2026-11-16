@@ -1,6 +1,7 @@
 /* The panel copies the look of the Orca file explorer. Orca gives an HTML panel only color
    variables (--orca-*), so the sizes below are the values of the Orca source:
    rows: FileExplorerRow.tsx (12 px text, 4 px 8 px padding, 16 px indent, 26 px pitch)
+   corners: Orca has a radius of 10 px. A row has 0.6 of it ("rounded-sm"), a field 0.8 ("rounded-md").
    field: FileExplorerNameFilter.tsx (32 px high, border, input color at 50 percent)
    scroll bar: src/shared/styles/scrollbar-sleek.css
    font: Geist, the interface font of Orca (assets/fonts, SIL Open Font License) */
@@ -25,22 +26,19 @@ button, input { font: inherit; }
 
 .vv-panel { display: flex; flex-direction: column; height: 100vh; }
 
-/* Scroll bar of Orca ("sleek") */
-.vv-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 34%, transparent) transparent;
-}
-.vv-scroll:hover { scrollbar-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 48%, transparent) transparent; }
-.vv-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+/* Scroll bar, as the scroll area of Orca (components/ui/scroll-area.tsx): a round thumb of about
+   10 px in a clear track of 16 px, in the muted text color at 40 percent, 60 percent under the pointer. */
+.vv-scroll::-webkit-scrollbar { width: 16px; height: 16px; }
 .vv-scroll::-webkit-scrollbar-track { background: transparent; }
 .vv-scroll::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--orca-muted-foreground, #737373) 28%, transparent);
+  background: color-mix(in srgb, var(--orca-muted-foreground, #737373) 40%, transparent);
   border: 3px solid transparent;
+  border-radius: 999px;
   background-clip: padding-box;
-  min-height: 28px;
+  min-height: 36px;
 }
-.vv-scroll::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 48%, transparent); }
-.vv-scroll::-webkit-scrollbar-thumb:active { background-color: color-mix(in srgb, var(--orca-foreground, #171717) 36%, transparent); }
+.vv-scroll::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--orca-muted-foreground, #737373) 60%, transparent); }
+.vv-scroll::-webkit-scrollbar-corner { background: transparent; }
 
 /* Titles. The Orca sidebar uses 12 px for titles, rows, and fields, and 11 px for notes.
    A title differs only in its weight (AiVaultPanelHeader.tsx: text-xs font-semibold). */
@@ -52,12 +50,12 @@ button, input { font: inherit; }
 /* Buttons */
 .vv-button {
   height: 24px; padding: 0 8px; cursor: pointer; color: var(--orca-foreground); background: transparent;
-  border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 8px) - 2px);
+  border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 10px) * 0.8);
 }
 .vv-button:hover { background: var(--orca-accent); color: var(--orca-accent-foreground); }
 .vv-icon {
   display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 20px; padding: 0;
-  color: var(--orca-muted-foreground); background: transparent; border: 0; border-radius: 4px; cursor: pointer; font-size: 14px; line-height: 1;
+  color: var(--orca-muted-foreground); background: transparent; border: 0; border-radius: calc(var(--orca-radius, 10px) * 0.6); cursor: pointer; font-size: 14px; line-height: 1;
 }
 .vv-icon:hover { color: var(--orca-foreground); background: var(--orca-accent); }
 .vv-icon.codicon { font-size: 14px; }
@@ -65,7 +63,7 @@ button, input { font: inherit; }
 /* Text field, as "Find files" of Orca */
 .vv-field {
   display: flex; align-items: center; gap: 4px; box-sizing: border-box; height: 32px; margin: 6px 8px; padding: 0 8px;
-  border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 8px) - 2px);
+  border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 10px) * 0.8);
   background: color-mix(in srgb, var(--orca-input) 50%, transparent);
 }
 .vv-field:focus-within { border-color: var(--orca-ring); box-shadow: 0 0 0 1px var(--orca-ring); }
@@ -78,7 +76,7 @@ button, input { font: inherit; }
 .vv-rows { padding: 0 4px; overflow-x: hidden; overflow-y: auto; }
 .vv-row, .vv-node-row, .vv-entry, .vv-result {
   display: flex; align-items: center; gap: 4px; box-sizing: border-box; min-height: 24px; margin-bottom: 2px; padding: 4px 8px;
-  border-radius: 4px; white-space: nowrap; cursor: default; user-select: none;
+  border-radius: calc(var(--orca-radius, 10px) * 0.6); white-space: nowrap; cursor: default; user-select: none;
 }
 .vv-row:hover, .vv-node-row:hover, .vv-entry:hover, .vv-result:hover { background: var(--orca-accent); }
 .vv-row.active, .vv-node-row.selected { background: var(--orca-accent); color: var(--orca-accent-foreground); }
