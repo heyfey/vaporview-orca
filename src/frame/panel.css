@@ -42,14 +42,19 @@ button, input { font: inherit; }
 
 /* Titles. The Orca sidebar uses 12 px for titles, rows, and fields, and 11 px for notes.
    A title differs only in its weight (AiVaultPanelHeader.tsx: text-xs font-semibold). */
-.vv-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; }
-.vv-title { font-weight: 600; }
-.vv-section { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 2px; font-weight: 600; border-top: 1px solid var(--orca-border); }
+/* A title row is 32 px high with 8 px at the sides, as the title row of the Orca file explorer
+   (FileExplorerToolbar.tsx: h-8 px-2 border-b). */
+.vv-header, .vv-section {
+  display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 32px; min-height: 32px; padding: 0 8px;
+  font-weight: 600; border-bottom: 1px solid var(--orca-border);
+}
+/* A line above the second title closes the part above it. */
+.vv-section { border-top: 1px solid var(--orca-border); }
 .vv-section-buttons { display: flex; }
 
 /* Buttons */
 .vv-button {
-  height: 24px; padding: 0 8px; cursor: pointer; color: var(--orca-foreground); background: transparent;
+  height: 24px; padding: 0 8px; cursor: pointer; font-weight: 500; color: var(--orca-foreground); background: transparent;
   border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 10px) * 0.8);
 }
 .vv-button:hover { background: var(--orca-accent); color: var(--orca-accent-foreground); }
@@ -62,7 +67,7 @@ button, input { font: inherit; }
 
 /* Text field, as "Find files" of Orca */
 .vv-field {
-  display: flex; align-items: center; gap: 4px; box-sizing: border-box; height: 32px; margin: 6px 8px; padding: 0 8px;
+  display: flex; align-items: center; gap: 4px; box-sizing: border-box; height: 32px; margin: 8px; padding: 0 8px;
   border: 1px solid var(--orca-border); border-radius: calc(var(--orca-radius, 10px) * 0.8);
   background: color-mix(in srgb, var(--orca-input) 50%, transparent);
 }
@@ -73,7 +78,7 @@ button, input { font: inherit; }
 .vv-field .vv-icon { width: 16px; height: 16px; font-size: 12px; }
 
 /* Rows: list of waveforms, tree, search results, file browser */
-.vv-rows { padding: 0 4px; overflow-x: hidden; overflow-y: auto; }
+.vv-rows { padding: 6px 4px; overflow-x: hidden; overflow-y: auto; }
 .vv-row, .vv-node-row, .vv-entry, .vv-result {
   display: flex; align-items: center; gap: 4px; box-sizing: border-box; min-height: 24px; margin-bottom: 2px; padding: 4px 8px;
   border-radius: calc(var(--orca-radius, 10px) * 0.6); white-space: nowrap; cursor: default; user-select: none;
@@ -102,10 +107,11 @@ button, input { font: inherit; }
 .vv-empty { padding: 12px; text-align: center; font-size: 11px; color: var(--orca-muted-foreground); }
 
 /* File browser and search */
-.vv-browser { border-bottom: 1px solid var(--orca-border); }
+.vv-browser, .vv-search { border-bottom: 1px solid var(--orca-border); }
 .vv-browser:empty, .vv-search:empty { display: none; }
-.vv-entries { max-height: 40vh; }
-.vv-search-info { padding: 0 12px 4px; color: var(--orca-muted-foreground); }
+.vv-entries { max-height: 40vh; border-top: 1px solid var(--orca-border); }
+.vv-search-info { padding: 0 12px 8px; font-size: 11px; color: var(--orca-muted-foreground); }
+.vv-search-info:empty { display: none; }
 .vv-result { align-items: flex-start; }
 .vv-result-text { flex: 1; min-width: 0; }
 .vv-result-line { display: flex; gap: 6px; }
