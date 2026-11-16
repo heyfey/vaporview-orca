@@ -141,6 +141,13 @@ this purpose, so the fit with the use model of the plugin is not confirmed.
 - **Backward compatible.** A new event. A plugin lists it in `contributes.events`.
 - **Concerns.** About 300 ms delay (two debounce steps). A fast open and close can collapse into
   one event. A split view shows more than one file, but the session has one active file for each workspace.
+- **Use in the plugin: the netlist tree follows the active tab.** In a split view two waveforms
+  show at the same time, and no page starts when the focus moves between them. Orca sets the
+  active surface of the workspace when a tab group gets the focus (`focusGroup` in
+  `src/renderer/src/store/slices/tabs/tabs-group-actions.ts`, line 144). So the `active` flag of
+  this event gives the worker what the view state event of VS Code gives vaporview. Until then the
+  page reports the `focus` event of its window (request `editor.focus`). Not yet known: if a
+  click on the tab title, with no click in the waveform, gives the page that event.
 
 ## PR-1: custom editor with no content
 

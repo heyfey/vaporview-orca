@@ -295,6 +295,12 @@ async function main(): Promise<void> {
     document.body.append(script);
   });
   status('');
+  // The person gave the focus to this tab. The worker makes this waveform the active one, so that
+  // the netlist tree shows it. This is necessary in a split view, where two waveforms show at the
+  // same time and no page starts when the focus moves.
+  window.addEventListener('focus', () => {
+    if (!closed) { request('editor.focus', { docKey, instance }).catch(() => undefined); }
+  });
   void poll();
 }
 

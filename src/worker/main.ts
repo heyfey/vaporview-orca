@@ -438,6 +438,18 @@ export default async function activate(orca: any): Promise<void> {
     return entry.link.poll(input.instance);
   });
 
+  // The tab of a waveform got the keyboard focus, for example in a split view with two waveforms.
+  // VS Code tells the extension with a view state event. Orca has no such event for a plugin
+  // (PR-3), so the page reports the `focus` event of its window.
+  orca.panels.handle('editor.focus', (input: any) => {
+    const entry = entries.get(input?.docKey);
+    if (entry && input.instance === entry.link.instance) {
+      currentWorkspace = entry.workspace;
+      setActive(entry);
+    }
+    return { ok: true };
+  });
+
   orca.panels.handle('editor.send', (input: any) => {
     const entry = entryOf(input);
     if (input.instance !== entry.link.instance) { return { stale: true }; }

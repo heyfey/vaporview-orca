@@ -150,5 +150,22 @@ check((await req('editor.hello', { instance: 'f3', fileName: session.fileName, s
 const again = await req('editor.hello', { instance: 'f3', fileName: session.fileName, session: afterClose, workspace: frameContext, reopen: true });
 check(!!again.docKey && again.keybindings.length === 17, 'the person can open it again, and the frame gets the keybindings');
 check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart === true, 'a frame of an unknown document is told to start again');
+{
+  // Two waveforms show at the same time (a split view). The tab that gets the focus sets the tree.
+  // This block is the last one and closes no waveform: the close of two waveforms in one run
+  // stops the worker, because of a vaporview defect (see D10 in docs/feature-parity.md).
+  const second = path.join(workspacePath, 'second.vcd');
+  fs.copyFileSync(waveform, second);
+  const other = await req('panel.open', { path: second });
+  const otherSession = JSON.parse(fs.readFileSync(path.join(workspacePath, '.vaporview', 'second.vcd.vaporview.json'), 'utf8'));
+  await req('editor.hello', { instance: 'g1', fileName: otherSession.fileName, session: otherSession, workspace: frameContext });
+  check((await req('panel.state', { workspace: context })).active === other.docKey, 'the second waveform is the active one after its page starts');
+  await req('editor.focus', { docKey: again.docKey, instance: 'f2' });
+  check((await req('panel.state', { workspace: context })).active === other.docKey, 'the focus report of a stale page changes nothing');
+  await req('editor.focus', { docKey: again.docKey, instance: 'f3' });
+  check((await req('panel.state', { workspace: context })).active === again.docKey, 'the tab that gets the focus makes its waveform the active one');
+  const tree = await req('tree.children', {});
+  check(tree.items.length > 0, 'the tree shows the waveform of the tab with the focus');
+}
 fs.rmSync(workspacePath, { recursive: true, force: true });
 process.exit(process.exitCode ?? 0);

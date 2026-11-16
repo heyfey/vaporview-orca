@@ -25,9 +25,10 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Open with a command | "Open File with VaporView" | Tweaked | yes | Orca | "Open Waveform" button in the panel. A palette command gets no arguments. PR-2 |
 | Select the file | VS Code file dialog | Tweaked | yes | Node | File browser in the panel, with a path field. Not yet used by hand. PR-2 |
 | Tab title | The waveform file name, `tpu.vcd` | Tweaked | yes | no | The tab shows the session file name, `tpu.vcd.vaporview.json`, with the plugin icon. PR-1 |
-| More than one waveform open | One tab for each | Same | yes | no | |
+| More than one waveform open | One tab for each | Same | yes | Orca | Open works. The close of two waveforms in one run stops the plugin worker, see D10. |
 | Waveform list | None (sv-pathfinder has it) | Tweaked | yes | Orca | New list in the panel, one list for each Orca workspace |
 | Select a waveform | Click its tab | Tweaked | yes | Node | A click on a list row shows the tree and the tab. A tab that shows selects its row. |
+| The tree follows the active tab | A view state event of VS Code tells the extension which editor is active | Tweaked | yes | Node | A tab that shows starts a new page, and the start selects the waveform. In a split view two waveforms show at the same time, so the page also reports the `focus` event of its window. Not yet known: if a click on the tab title, with no click in the waveform, gives the page a focus event. PR-3 |
 | Close a waveform | Close the tab | Tweaked | yes | Node | Close button on the list row. The tab stays and shows "This waveform is closed" with an "Open again" button. PR-4 |
 | Keep a hidden tab alive | Yes | Blocked | no | | Orca destroys the page of a hidden tab. Each return loads the signal data again. PR-5 |
 | Restore after a restart | VS Code restores the tab and its state | Same | yes | Orca | Tested with a restart of the plugin worker, not of Orca |
@@ -177,6 +178,7 @@ Messages 9 to 21 cannot occur now. If one occurs later, it shows in the panel.
 | D7 | Ctrl+F opens the search in the panel, but the field has no keyboard focus | Decided 2026-11-15: leave it, the person clicks the field. Wait for Orca issue #40813, and add our case to it. | |
 | D8 | "Show in Netlist View" when the Vaporview panel is not in front | Decided 2026-11-15: leave it. It works when the panel shows. No helper program. The fix is PR-11. | |
 | D9 | The same waveform opened again from a different tab group | Decided 2026-11-16: no workaround in the plugin. If Orca makes a second tab, the older tab shows the message with "Show here". The fix is PR-12. | |
+| D10 | The close of two waveforms in one run stops the plugin worker | Cause: vaporview keeps the file handle of all documents in one shared object (`nodeFsWrapper` in `vaporview/src/extension_core/wasm_handler.ts`, line 26). The second close closes the same handle again, the error `EBADF` has no handler, and Orca stops a worker for such an error (`src/main/plugins/workers/plugin-host-entry.ts`, line 33). VS Code only logs it. Options: (a) change vaporview: one file reader for each document, and handle the close error. This is the first change to vaporview. (b) leave it. | (a), as a branch in the vaporview fork and a PR for upstream. Open |
 
 ## Checks that need a person
 

@@ -48,11 +48,12 @@ $ORCA plugin dev unload 'C:\Users\<user>\orca-plugin-dev\vaporview-probe' --json
 | 20 | Can the CLI take a screenshot while the Orca window shows? | `plugin shot --panel` and `plugin shot --editor` work. The editor shot starts a new frame and captures it at its first paint, so it shows the load text. | For the editor, use the `debug.snapshot` request of the plugin. |
 | 21 | Split view: does `editor.open` use a tab that is open in a different tab group? | Not always (1.4.259, by hand). In two runs Orca made a second tab in the group with the focus, in one run it used the open tab. The source shows that Orca looks only in the active group. | No workaround in the plugin. PR-12. |
 | 22 | Split view: does a page in the group with no focus keep its contact with the worker? | No (1.4.259, by hand, three runs). It sent no request and answered no post from the moment when the other group got the focus. The cause is not known. | A command from the tree makes the page start again. Open question for the Orca maintainers. |
+| 23 | What does Orca do when a promise of the worker fails and no code handles the error? | From the source, not run: Orca stops the worker (`dieFatally` in `src/main/plugins/workers/plugin-host-entry.ts`). The VS Code extension host only logs such an error. | Code that is safe in VS Code can stop the worker in Orca. See D10 in `feature-parity.md`. |
 
 Row 14 on Orca 1.4.259: `workspace.readContext` and `workspace.changed` give `workspaceId` to the worker.
 
 ## Not tested
 
-- Two editor frames at the same time (split view).
+- Two editor frames at the same time (split view): rows 21 and 22 only. The focus report of a page (the tree follows the tab) is not yet confirmed by hand.
 - Keys with Ctrl or Alt in the frame. Orca can take some of them for its own shortcuts.
 - A workspace on a local drive (all tests used a WSL folder).
