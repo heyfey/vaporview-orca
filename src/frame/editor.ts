@@ -212,6 +212,7 @@ async function main(): Promise<void> {
   const poll = async (): Promise<void> => {
     while (!closed) {
       let answer: any;
+      const asked = Date.now();
       try {
         answer = await request('editor.poll', { docKey, instance, visible: document.visibilityState === 'visible', focus: document.hasFocus() }, 60_000);
       } catch (err: any) {
@@ -219,6 +220,9 @@ async function main(): Promise<void> {
         await new Promise((r) => setTimeout(r, 1000));
         continue;
       }
+      // Diagnostics: the worker answers a poll after 5 s at most. A longer time means that the
+      // answer was late, which the plugin log must show.
+      if (Date.now() - asked > 9000) { console.error(`[vaporview] poll answer of page ${instance} came after ${((Date.now() - asked) / 1000).toFixed(1)} s`); }
       // A newer page shows this waveform (a second tab in a split view). vaporview has one view for
       // each waveform, so this page stops. The person can move the waveform back to this tab.
       if (answer.stale) {

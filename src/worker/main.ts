@@ -92,8 +92,17 @@ class FrameLink {
   /** What the page said about itself in its last poll, for the log. */
   lastPollInfo = 'none';
 
+  /** Diagnostics: when the last poll came, and a note when a page was silent or changed its state. */
+  lastPollAt = 0;
+  onNote: (text: string) => void = () => undefined;
+
   poll(instance: string, info = ''): Promise<{ messages: string; stale?: boolean }> {
     if (instance !== this.instance) { return Promise.resolve({ messages: '[]', stale: true }); }
+    const now = Date.now();
+    const gap = this.lastPollAt ? now - this.lastPollAt : 0;
+    if (gap > POLL_HOLD_MS + 2000) { this.onNote(`page ${instance} polled again after ${(gap / 1000).toFixed(1)} s of silence (${info})`); }
+    else if (info !== this.lastPollInfo && this.lastPollInfo !== 'none') { this.onNote(`page ${instance} is now ${info}`); }
+    this.lastPollAt = now;
     this.lastPollInfo = info;
     this.pollSeen?.();
     this.pollSeen = undefined;
@@ -318,6 +327,7 @@ export default async function activate(orca: any): Promise<void> {
     if (!fs.existsSync(waveformPath)) { throw Object.assign(new Error(`File not found: ${waveformPath}`), { code: 'action_failed' }); }
     log(`load ${waveformPath} for workspace ${ws.name}`);
     const link = new FrameLink();
+    link.onNote = (text) => log(text);
     const entry: Entry = { key, workspace: ws, waveformPath, document: undefined, panel: undefined as any, link, state: undefined };
     entry.panel = new WebviewPanel(VIEW_TYPE, (m) => link.post(m), () => void showTab(entry));
     entry.document = await provider.openCustomDocument(Uri.file(waveformPath), {}, token);
@@ -412,7 +422,8 @@ export default async function activate(orca: any): Promise<void> {
   async function showTab(entry: Entry): Promise<void> {
     const started = Date.now();
     const live = await entry.link.isLive();
-    log(`show ${path.basename(entry.waveformPath)}: ${live ? 'a page shows it, no tab opens' : 'no page answers, Orca opens the tab'} (${Date.now() - started} ms, page ${entry.link.instance ?? 'none'}, last poll: ${entry.link.lastPollInfo})`);
+    const silent = entry.link.lastPollAt ? `${((started - entry.link.lastPollAt) / 1000).toFixed(1)} s before` : 'never';
+    log(`show ${path.basename(entry.waveformPath)}: ${live ? 'a page shows it, no tab opens' : 'no page answers, Orca opens the tab'} (${Date.now() - started} ms, page ${entry.link.instance ?? 'none'}, last poll: ${silent}, ${entry.link.lastPollInfo})`);
     if (live) { return; }
     await openTab(entry);
   }
