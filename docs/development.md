@@ -164,6 +164,32 @@ On Linux and macOS the folder of the probe is `tools/orca-probe` itself.
 - Unload the probe when you are done. It is a development tool, and its worker runs with the
   access of your user account.
 
+## Known limits
+
+The limits that a person meets most. [feature-parity.md](feature-parity.md) has the full list, and
+[orca-pr-candidates.md](orca-pr-candidates.md) has the proposal for each Orca gap.
+
+| Limit | Cause |
+|---|---|
+| A waveform file does not open from the Orca file explorer | A custom editor gets file content, not a path (PR-1) |
+| The tab title is the session file name (`<name>.vaporview.json`) | The tab shows the file that the editor opened (PR-1) |
+| The viewer loads its signals again when its tab shows again | Orca destroys the page of a hidden tab (PR-5) |
+| The tab stays open after a waveform closes in the panel | A plugin cannot close a tab (PR-4) |
+| Commands that need an input box or a file dialog are hidden | Orca has no input prompt or file dialog for a plugin (PR-2, PR-7) |
+| `Ctrl+0` (zoom to fit) goes to Orca | Orca handles its shortcuts before the page (PR-10) |
+| The worker restarts when two waveforms close in one run | A vaporview defect (D10 in `feature-parity.md`) |
+| Large waveforms are slow | The data path from the worker to a page is JSON text with a message limit (PR-6) |
+
+## Files of other projects
+
+- `vaporview/`: GPL-3.0, the license of this project.
+- `assets/fonts/Geist-Variable.woff2`: the Geist font, under the SIL Open Font License
+  (`assets/fonts/Geist-OFL.txt`).
+- `src/frame/lucide-icons.ts`: icon shapes of the lucide icon set, under the ISC license. The
+  header of the file has the notice. `scripts/update-icons.mjs` makes the file.
+- The build copies the icon font of VS Code (`@vscode/codicons`) from the submodule into
+  `build/plugin`.
+
 ## Documents to keep current
 
 | Document | Update it when |
@@ -172,4 +198,4 @@ On Linux and macOS the folder of the probe is `tools/orca-probe` itself.
 | [orca-pr-candidates.md](orca-pr-candidates.md) | A new gap in the Orca plugin API shows, or Orca closes one |
 | [orca-test-results.md](orca-test-results.md) | A measurement of Orca behavior is new or changed |
 | [architecture.md](architecture.md) | A design decision changes |
-| `README.md` | Something changes for a person who uses the plugin. Keep technical detail out of it. |
+| `README.md` | Something changes that a person must know to install or use the plugin. Keep it short: no feature list, no technical detail, no limit that is not a difference from vaporview for the person. |

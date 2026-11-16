@@ -34,7 +34,8 @@ A port of the VS Code extension vaporview to an Orca plugin. The vaporview code 
 
 - `npm run build && npm test` passes.
 - `docs/feature-parity.md` is current for the change.
-- `README.md` stays user-facing. Technical detail goes into `docs/`.
+- `README.md` stays short and user-facing: install, use, and the differences from vaporview.
+  Technical detail and limits go into `docs/`.
 
 ## Commands
 
