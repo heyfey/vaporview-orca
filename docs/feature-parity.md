@@ -116,7 +116,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Settings | 33 settings in VS Code | Same | yes | Orca | 26 settings in the Orca settings page of the plugin. The 7 others are for features that the plugin does not have. The plugin does not read the settings of VS Code. |
 | Change a setting from the viewer | For example scrolling mode | Same | yes | Orca | The command "Touchpad" of the scrolling mode changed the Orca setting |
 | Status bar: marker time, delta time, selected signal | 3 items | Same | yes | Orca | Orca status bar items |
-| Messages (information, warning, error) | VS Code notification | Tweaked | yes | Orca | The message shows in the panel. Orca gives a plugin only a desktop notification. |
+| Messages (information, warning, error) | VS Code notification | Tweaked | yes | Orca | The message shows in the panel. Orca has toasts for its own messages, but no toast method for a plugin. PR-8 |
 | Question before more than 48 signals are added ("Yes", "No") | VS Code notification with buttons | Tweaked | yes | Node | No question. The plugin adds the signals. Orca has no question dialog for a plugin. PR-7 (deferred) |
 | Other questions with buttons ("Restore state from file", and two of the remote viewer) | VS Code notification with buttons | Blocked | no | | The text shows as a message, and the question gets no answer. PR-7 (deferred) |
 

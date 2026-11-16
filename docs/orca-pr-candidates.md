@@ -35,6 +35,7 @@ Changes to propose to Orca (`stablyai/orca`) for the limits in [architecture.md]
 | PR-6 | Byte transport from worker to page: raw bytes (not base64 text in JSON), larger answers, no small message limit | Critical for performance. A signal has 50 million to 500 million value changes. Today: 1 MiB for each answer, 120 messages in 10 s, about 10 MiB/s. | High. All plugins with large data: images, tables, logs. | S on desktop (100 to 250), M with web clients | Medium. A larger limit is the difficult part. | High |
 | PR-5 | Keep a hidden page alive | High. The only change that removes the data reload on each return to a tab. | Medium. Heavy editors. | L (more than 600) | High. Memory for each page, eviction. | Medium |
 | PR-7 | Input prompt and quick pick for a plugin command | Medium. Eight vaporview features need it (see [feature-parity.md](feature-parity.md)). They are blocked until Orca has it. | High. Each plugin command that needs one value from the person. | M (250 to 400), estimated from the built-ins below, not from a full read | Medium. Where the prompt shows, and focus. | Medium to high |
+| PR-8 | Toast in the Orca window for a plugin (information, success, warning, error) | Medium. vaporview messages get the Orca look, and they show when the panel is closed. | High. Each plugin has short results and errors to show. | Not yet estimated | Not yet known | Not yet known |
 | | Workspace id for frames | | | | | Done in host API 1.7 |
 
 Recommended order:
@@ -187,6 +188,23 @@ this purpose, so the fit with the use model of the plugin is not confirmed.
   before a large add of signals, it adds the signals.
 - **Pattern to copy.** The rename dialogs for the look, the plugin confirm dialog for "a worker asks the person", and the relay of `editor.open` for the path from worker to renderer.
 - **Open.** The concerns of the maintainers are not yet known. The cost is an estimate from those built-ins.
+
+## PR-8: toast in the Orca window
+
+- **Today.** A plugin can show a message in three places: its own page, its status bar item, or a
+  desktop notification of the operating system (`notifications.show({ title, body })`). Orca
+  shows toasts in its window for its own messages (the `sonner` library, with the kinds error,
+  success, warning, information, plain message, and loading), but the plugin API has no method
+  for them.
+- **Proposal.** `ui.toast({ level: 'info' | 'success' | 'warning' | 'error', message, description? })`
+  for the worker and for frames, with a rate limit. Orca adds the plugin name, as it does for a
+  desktop notification.
+- **General.** Short results ("copied") and errors of each plugin. VS Code has the same three
+  levels: information, warning, error.
+- **Backward compatible.** A new method.
+- **Survey (2026-11-15).** No open PR or issue for a toast. Related, both about the desktop
+  notification: issue #27968 (dismiss a notification) and PR #24041 (open the workspace on a click).
+- **The plugin today.** A vaporview message shows in the message bar of the panel.
 
 ## PR-5: keep a hidden frame alive
 
