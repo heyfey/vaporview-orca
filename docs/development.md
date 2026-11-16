@@ -78,6 +78,7 @@ From WSL, call the Windows CLI:
 | `tools/orca-probe/` | A test plugin that measures Orca behavior |
 | `docs/` | Design, feature state, Orca proposals, and measured Orca behavior |
 | `docs/drafts/` | Drafts of issues and PRs for other projects, not yet filed |
+| `docs/images/` | Pictures for the README |
 | `build/` | Build output (not in git) |
 | `testdata/` | Your own waveform files (not in git) |
 

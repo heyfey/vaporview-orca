@@ -1,8 +1,10 @@
 # vaporview-orca
 
-A waveform viewer for the [Orca](https://github.com/stablyai/orca) IDE. It is the VS Code extension
+A waveform viewer for the [Orca](https://github.com/stablyai/orca) ADE. It is the VS Code extension
 [vaporview](https://github.com/Lramseyer/vaporview) as an Orca plugin. It opens VCD, FST, and GHW
 files, and it looks and works like vaporview.
+
+![Vaporview in Orca: the waveform viewer in an editor tab, and the waveform list and the netlist tree in the sidebar](docs/images/overview.png)
 
 This project is a prototype. It is not a part of vaporview or of Orca. All credit for the viewer
 goes to the vaporview authors.
