@@ -112,7 +112,8 @@ for (const group of Array.isArray(configuration) ? configuration : [configuratio
     settings.push(setting);
   }
 }
-manifest.contributes.settings = settings;
+// The settings of the plugin itself come first, then the settings of vaporview.
+manifest.contributes.settings = [...(manifest.contributes.settings ?? []), ...settings];
 fs.writeFileSync(path.join(out, 'orca-plugin.json'), JSON.stringify(manifest, null, 2) + '\n');
 copy(path.join(root, 'LICENSE'), path.join(out, 'LICENSE'));
 

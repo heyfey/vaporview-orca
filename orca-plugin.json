@@ -49,6 +49,19 @@
       {
         "on": "workspace.changed"
       }
+    ],
+    "settings": [
+      {
+        "key": "treeIcons",
+        "title": "Netlist Icons",
+        "type": "string",
+        "enum": [
+          "Orca",
+          "Vaporview"
+        ],
+        "default": "Orca",
+        "description": "The icons of the items in the netlist tree and in the search results. \"Orca\" uses the icon set of Orca in one color. \"Vaporview\" uses the icons and colors of vaporview in VS Code."
+      }
     ]
   },
   "capabilities": [

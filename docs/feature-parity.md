@@ -94,7 +94,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 | Feature | vaporview | Plugin | Built | Tested | Reason and Orca PR |
 |---|---|---|---|---|---|
 | Netlist tree with lazy load | VS Code tree view | Tweaked | yes | Orca | HTML tree in the panel, with the look of the Orca file explorer (copied values and the Geist font). The native Orca `Tree` has no context menu, no row buttons, and 2000 items maximum. PR-9 |
-| Icons and icon colors | VS Code icons (codicons), one color for each kind | Tweaked | yes | Orca | Icons of the lucide set, which Orca uses, in one color. Each vaporview icon has a lucide icon (`src/frame/icons.ts`). A name with no lucide icon keeps the VS Code icon. |
+| Icons and icon colors | VS Code icons (codicons), one color for each kind | Tweaked | yes | Orca | Icons of the lucide set, which Orca uses, in one color. Each vaporview icon has a lucide icon (`src/frame/icons.ts`). The plugin setting "Netlist Icons" = "Vaporview" gives the vaporview icons and colors again, in the tree and in the search results. |
 | Add variable (button on the row) | Inline button | Same | yes | Orca | |
 | Show in viewer (button on the row, menu) | Inline button | Same | yes | no | |
 | Add at a double click | Yes | Same | yes | no | The vaporview code detects the second click |
@@ -113,7 +113,7 @@ request `debug.input`, and read the result with `debug.snapshot`. A person did n
 |---|---|---|---|---|---|
 | Automatic view state | VS Code webview state | Tweaked | yes | Orca | Session file in `.vaporview/`, written by the worker. The signal list came back after a worker restart. |
 | Save session, load session | Save and open dialogs | Blocked | no | | No file dialog, so the menu does not show the items. The automatic session file in `.vaporview/` has the same role (decision D2). PR-2 |
-| Settings | 33 settings in VS Code | Same | yes | Orca | 26 settings in the Orca settings page of the plugin. The 7 others are for features that the plugin does not have. The plugin does not read the settings of VS Code. |
+| Settings | 33 settings in VS Code | Same | yes | Orca | 26 vaporview settings in the Orca settings page of the plugin, plus one setting of the plugin itself ("Netlist Icons"). The 7 others are for features that the plugin does not have. The plugin does not read the settings of VS Code. |
 | Change a setting from the viewer | For example scrolling mode | Same | yes | Orca | The command "Touchpad" of the scrolling mode changed the Orca setting |
 | Status bar: marker time, delta time, selected signal | 3 items | Same | yes | Orca | Orca status bar items |
 | Messages (information, warning, error) | VS Code notification | Tweaked | yes | Orca | The message shows in the panel. Orca has toasts for its own messages, but no toast method for a plugin. PR-8 |

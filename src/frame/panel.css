@@ -102,7 +102,7 @@ button, input { font: inherit; }
 /* Icons have one color, as the icons of the Orca file explorer. */
 .vv-node-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 16px; height: 16px; font-size: 14px; color: var(--orca-muted-foreground); }
 .vv-node-icon svg { width: 14px; height: 14px; }
-.vv-node-row.selected .vv-node-icon, .vv-node-row:hover .vv-node-icon { color: var(--orca-foreground); }
+.vv-node-row.selected .vv-node-icon:not(.vv-vaporview-icon), .vv-node-row:hover .vv-node-icon:not(.vv-vaporview-icon) { color: var(--orca-foreground); }
 
 /* Messages and empty states */
 .vv-message { display: none; padding: 4px 12px; color: var(--orca-destructive); }

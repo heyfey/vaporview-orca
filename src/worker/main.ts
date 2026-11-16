@@ -685,8 +685,11 @@ export default async function activate(orca: any): Promise<void> {
     entry.link.post({ command: 'orca-snapshot', id });
     return result;
   });
-  // Development aid: the settings that the worker read from Orca.
-  orca.panels.handle('debug.settings', () => JSON.parse(JSON.stringify({ settings })));
+  // Development aid: the settings that the worker read from Orca, and a change of one setting.
+  orca.panels.handle('debug.settings', async (input: any) => {
+    if (input?.key) { await orca.settings.set(input.key, input.value); }
+    return JSON.parse(JSON.stringify({ settings }));
+  });
 
   // Development aid: sends pointer, wheel, or key events to the page of the active waveform.
   orca.panels.handle('debug.input', async (input: any) => {

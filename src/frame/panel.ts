@@ -14,9 +14,10 @@ type TreeNode = {
   icon: string; color: string; tooltip: string; inline: InlineButton[];
 };
 
-// vaporview gives each kind of tree icon a VS Code theme color. The Orca file explorer has icons
-// of one color, so the panel does not use the colors. Set this to true to see them again.
-const COLORED_ICONS = false;
+// The plugin setting "Netlist Icons". "Orca": lucide icons in one color, as the Orca file explorer.
+// "Vaporview": the VS Code icons of vaporview, each kind with its VS Code theme color.
+const ICON_SETTING = 'treeIcons';
+let vaporviewIcons = false;
 const ICON_COLORS: Record<string, string> = {
   'charts.purple': '#b180d7', 'charts.green': '#89d185', 'charts.orange': '#d18616',
   'charts.yellow': '#cca700', 'charts.blue': '#3794ff', 'charts.red': '#f14c4c',
@@ -182,6 +183,14 @@ function setSelection(ids: number[]): void {
 const runTreeCommand = (id: number, command: string) =>
   run(() => request('menu.run', { source: 'tree', id, command }, 60_000));
 
+/** The icon of a scope or a variable, in the icon set that the setting selects. */
+function netlistIcon(codicon: string, color: string): HTMLElement {
+  if (!vaporviewIcons) { return iconFor(codicon, 'vv-node-icon'); }
+  const node = el('span', codicon ? `vv-node-icon vv-vaporview-icon codicon codicon-${codicon}` : 'vv-node-icon');
+  node.style.color = ICON_COLORS[color] ?? '';
+  return node;
+}
+
 async function loadChildren(container: HTMLElement, id?: number, depth = 0): Promise<void> {
   const r = await request('tree.children', { id });
   if (id === undefined) { renderTitleButtons(r.title ?? []); }
@@ -209,8 +218,7 @@ function renderNode(node: TreeNode, depth: number): HTMLElement {
   row.style.paddingLeft = `${8 + depth * 16}px`;
   row.title = node.tooltip || node.label;
   const twist = node.expandable ? lucideIcon('chevron-right', 'vv-twist') : el('span', 'vv-twist');
-  const icon = iconFor(node.icon, 'vv-node-icon');
-  if (COLORED_ICONS && node.color) { icon.style.color = ICON_COLORS[node.color] ?? ''; }
+  const icon = netlistIcon(node.icon, node.color);
   row.append(twist, icon, el('span', 'vv-name', node.label), el('span', 'vv-dim', node.description));
   for (const b of node.inline) {
     const button = iconFor(b.icon, 'vv-icon vv-inline', 'button');
@@ -340,8 +348,7 @@ function renderSearch(s: SearchState): void {
   if (!active) { return; }
   s.items.forEach((item, index) => {
     const row = el('div', 'vv-result');
-    const icon = iconFor(item.icon, 'vv-node-icon');
-    if (COLORED_ICONS && item.color) { icon.style.color = ICON_COLORS[item.color] ?? ''; }
+    const icon = netlistIcon(item.icon, item.color);
     const text = el('div', 'vv-result-text');
     const first = el('div', 'vv-result-line');
     first.append(el('span', 'vv-name', item.label), el('span', 'vv-dim', item.description));
@@ -370,6 +377,14 @@ orca.plugin.on('search.update', (s: SearchState) => renderSearch(s));
 orca.plugin.on('tree.reveal', (p: { path: number[]; select: boolean }) => void run(() => reveal(p.path ?? [], p.select)));
 orca.plugin.on('panel.message', (m: { level: string; message: string }) => showMessage(m.message, m.level));
 orca.plugin.on('clipboard.write', (p: { text: string }) => { if (document.hasFocus()) { void writeClipboard(p?.text ?? ''); } });
+// The icon setting. The tree shows the new icons at once, and keeps its open nodes.
+async function readIconSetting(): Promise<void> {
+  const before = vaporviewIcons;
+  vaporviewIcons = (await orca.settings.get(ICON_SETTING).catch(() => undefined)) === 'Vaporview';
+  if (before !== vaporviewIcons) { reloadTree(false); }
+}
+orca.settings.onDidChange?.(() => void readIconSetting());
+
 orca.on('workspace.changed', (p: { context: unknown }) => void run(() => refresh(p?.context ?? null)));
 renderList();
-void run(() => refresh());
+void run(async () => { await readIconSetting(); await refresh(); });
