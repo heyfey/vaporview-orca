@@ -11,8 +11,12 @@ goes to the vaporview authors.
 
 ## Install
 
-The plugin is not yet in the Orca plugin catalog. For now, build it from the source:
-[docs/development.md](docs/development.md).
+The plugin is in the Orca plugin directory:
+[orca.dev/plugins/heyfey/vaporview-orca](https://orca.dev/plugins/heyfey/vaporview-orca). Select
+"Open in Orca" on that page. The page also tells you how to install it from the settings of Orca.
+
+Orca asks for your approval before the install. The plugin reads waveform files from your disk, so
+it runs with the access of your user account.
 
 ## Use
 

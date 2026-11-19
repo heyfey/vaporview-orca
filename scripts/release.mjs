@@ -5,7 +5,8 @@
 // Orca installs a plugin from the files of the tagged commit, and the Orca plugin directory
 // refuses a commit that has a submodule or a binary test file. The main branch has both. So the
 // tag goes on a commit of the branch `release`, which holds only the folder that the build
-// stages for Orca (build/plugin): the manifest, the license, dist/, and the pictures.
+// stages for Orca (build/plugin): the manifest, the license, dist/, the pictures, and a README
+// that points to the main branch (scripts/release-readme.md).
 //
 // Before a release: set the new version in orca-plugin.json and package.json, and commit.
 import { execFileSync } from 'node:child_process';

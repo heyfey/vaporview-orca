@@ -11,7 +11,8 @@
 //     package.json, media/, dist/worker.js (parser thread), dist/webview.js, target/.../filehandler.wasm
 //
 // The build also makes build/plugin: a copy of only the files that Orca needs (the manifest,
-// dist/, and the pictures). Load that folder as a development plugin.
+// dist/, and the pictures), and a short README that points to the main branch. Load that folder
+// as a development plugin. A release is a commit of that folder (scripts/release.mjs).
 import * as esbuild from 'esbuild';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -177,6 +178,7 @@ fs.writeFileSync(path.join(out, 'panel.html'), '<link rel="stylesheet" href="ext
 fs.rmSync(stage, { recursive: true, force: true });
 copy(path.join(root, 'orca-plugin.json'), path.join(stage, 'orca-plugin.json'));
 copy(path.join(root, 'LICENSE'), path.join(stage, 'LICENSE'));
+copy(path.join(root, 'scripts', 'release-readme.md'), path.join(stage, 'README.md'));
 copy(out, path.join(stage, 'dist'));
 for (const image of [manifest.cover?.path, ...(manifest.screenshots ?? []).map((s) => s.path)]) {
   if (image) { copy(path.join(root, image), path.join(stage, image)); }

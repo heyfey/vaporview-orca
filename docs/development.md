@@ -36,7 +36,7 @@ If you cloned without `--recurse-submodules`, run `git submodule update --init`.
 ## Load the plugin in Orca
 
 The build makes the folder `build/plugin`. It holds only the files that Orca needs: the manifest,
-`dist/`, and the pictures. Load it as a development plugin with the Orca CLI:
+`dist/`, the pictures, and a short README. Load it as a development plugin with the Orca CLI:
 
 ```bash
 orca plugin dev load <path of build/plugin>
@@ -73,7 +73,7 @@ From WSL, call the Windows CLI:
 | `src/worker/` | The plugin worker: runs the vaporview extension code and moves messages |
 | `src/frame/` | The pages: the editor (the vaporview webview) and the sidebar panel |
 | `src/common/` | Code for the worker and the pages |
-| `scripts/` | Build, copy to Windows, icon update |
+| `scripts/` | Build, release, copy to Windows, icon update |
 | `test/` | Tests that run in plain Node, and the test waveforms |
 | `vaporview/` | Upstream vaporview, as a git submodule |
 | `assets/` | The font of the panel |
@@ -100,8 +100,9 @@ root is the plugin: `orca-plugin.json` at the root points to the built files in 
   That script tells the Rust compiler to replace the paths of your machine, so that they are not
   in the file. A different Rust version can give a different file, so run `build:vaporview` only
   when the submodule commit changes.
-- A person who installs the plugin gets all files of the commit, also `src/`, `docs/`, and `test/`.
-  Keep large files out of the repository. Orca permits 2,000 files and 50 MiB for a plugin.
+- A person who installs the plugin from the directory gets the files of a release commit, which
+  holds only `build/plugin` (see "Make a release"). Orca permits 2,000 files and 50 MiB for a
+  plugin.
 
 Do not load the repository root as a development plugin. The submodule folder has the Rust build
 output, which is larger than the Orca limits. Load `build/plugin`.
@@ -132,6 +133,35 @@ that the adapter does not have yet. The build or the tests show that.
 
 The plugin uses the vaporview code with no change. A change that vaporview needs must be general
 and backward compatible, so that upstream can merge it.
+
+## Make a release
+
+A release is one commit on the branch `release`, and a version tag on that commit. The commit
+holds only the content of `build/plugin`. The tag is not on `main`, because the Orca plugin
+directory refuses a tagged commit that has a submodule or a binary test file, and `main` has both.
+
+1. Set the new version (`x.y.z`) in `orca-plugin.json` and in `package.json`.
+2. Run `npm test`. Commit the change, with `dist/` if the build changed it.
+3. Run `npm run release`. The script builds, makes the commit on `release`, and makes the tag
+   `v<version>`. It does not push. It stops if the work tree has changes, if the tag exists, or if
+   the release has an entry that is not a plain file.
+4. Push: `git push origin main`, then `git push origin release v<version>`.
+5. Examine the plugin page: <https://orca.dev/plugins/heyfey/vaporview-orca>. The directory reads
+   new tags each 30 minutes. If it refuses the version, the page gives the cause.
+
+Rules:
+
+- If the directory refuses a version, correct the cause and make a new version. Do not move a tag.
+- A version can stay "Under review" until an Orca maintainer approves it. For `v0.1.1` that was
+  about two days.
+- Do not change the plugin id (`vaporview`) or the name of the repository. Orca then sees a
+  different plugin.
+- Do not change the branch `release` by hand. Its README comes from `scripts/release-readme.md`.
+- The tagged commit must have no submodule, no symbolic link, no TTF or OTF font, and no binary
+  file such as an executable or an archive. PNG, JPEG, and WEBP pictures, WOFF fonts, and the WASM
+  parser are accepted.
+- The cover, the screenshots, and the icon are in the manifest. The sizes that Orca accepts are in
+  the Orca document `docs/reference/plugin-manifest.md`.
 
 ## Development requests
 
