@@ -8,8 +8,8 @@
   "repository": "https://github.com/heyfey/vaporview-orca",
   "homepage": "https://github.com/heyfey/vaporview-orca",
   "cover": {
-    "path": "docs/images/overview.png",
-    "alt": "The Vaporview plugin in Orca: a waveform in an editor tab, with the waveform list and the netlist tree in the sidebar"
+    "path": "docs/images/cover.png",
+    "alt": "Vaporview: View VCD, FST, and GHW waveforms right in Orca's editor."
   },
   "screenshots": [
     {

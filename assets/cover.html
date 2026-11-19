@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Vaporview cover</title>
+<!--
+  The source of the cover picture of the plugin page (docs/images/cover.png, 1600 x 1000).
+  To make the picture again, from the repository root:
+    google-chrome --headless=new --hide-scrollbars --force-device-scale-factor=1 --window-size=1600,1000 \
+      --screenshot="$PWD/docs/images/cover.png" "file://$PWD/assets/cover.html"
+-->
+<style>
+  @font-face { font-family: Geist; src: url('fonts/Geist-Variable.woff2') format('woff2'); font-weight: 100 900; }
+  :root {
+    --bg: #070b16; --ink: #f4f6fb; --dim: #a9b2c7; --line: rgba(255,255,255,.09);
+    --accent: #3ddc97; --win: #0d1322; --bar: #0a0f1c; --mono: 'DejaVu Sans Mono', monospace;
+    --c1: #6ee7b7; --c2: #7dd3fc; --c3: #c4b5fd; --c4: #fcd34d; --x: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1600px; height: 1000px; overflow: hidden; }
+  body {
+    font-family: Geist, sans-serif; color: var(--ink); position: relative;
+    background:
+      radial-gradient(760px 520px at 1260px 150px, rgba(168, 85, 247, .30), transparent 70%),
+      radial-gradient(700px 520px at 60px 960px, rgba(45, 212, 191, .20), transparent 70%),
+      radial-gradient(900px 600px at 560px 60px, rgba(56, 189, 248, .10), transparent 70%),
+      var(--bg);
+  }
+  .eyebrow { position: absolute; left: 120px; top: 92px; font-size: 19px; font-weight: 600; letter-spacing: .22em; color: var(--accent); }
+  h1 { position: absolute; left: 114px; top: 124px; font-size: 118px; line-height: 1.05; font-weight: 700; letter-spacing: -.035em; }
+  .sub { position: absolute; left: 120px; top: 262px; font-size: 31px; color: #dbe1ee; font-weight: 400; }
+  .chips { position: absolute; right: 120px; top: 176px; display: flex; gap: 12px; }
+  .chip { font-family: var(--mono); font-size: 23px; font-weight: 700; padding: 9px 20px 10px; border-radius: 999px;
+          background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); color: #e6eaf4; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #04130c; }
+
+  .window { position: absolute; left: 120px; top: 392px; width: 1360px; border-radius: 14px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,.16); box-shadow: 0 40px 120px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.4); }
+  .window img { display: block; width: 100%; }
+</style>
+
+<div class="eyebrow">ORCA PLUGIN</div>
+<h1>Vaporview</h1>
+<div class="sub">View VCD, FST, and GHW waveforms right in Orca's editor.</div>
+<div class="chips"><span class="chip on">.vcd</span><span class="chip">.fst</span><span class="chip">.ghw</span></div>
+
+<div class="window"><img src="../docs/images/overview.png" alt=""></div>

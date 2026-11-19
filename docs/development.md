@@ -76,11 +76,11 @@ From WSL, call the Windows CLI:
 | `scripts/` | Build, release, copy to Windows, icon update |
 | `test/` | Tests that run in plain Node, and the test waveforms |
 | `vaporview/` | Upstream vaporview, as a git submodule |
-| `assets/` | The font of the panel |
+| `assets/` | The font of the panel, and the source of the cover picture |
 | `tools/orca-probe/` | A test plugin that measures Orca behavior |
 | `docs/` | Design, feature state, Orca proposals, and measured Orca behavior |
 | `docs/drafts/` | Drafts of issues and PRs for other projects, not yet filed |
-| `docs/images/` | Pictures for the README |
+| `docs/images/` | Pictures for the README and for the plugin page |
 | `build/` | The copy for a development load, and test bundles (not in git) |
 | `testdata/` | Your own waveform files (not in git) |
 
@@ -160,8 +160,11 @@ Rules:
 - The tagged commit must have no submodule, no symbolic link, no TTF or OTF font, and no binary
   file such as an executable or an archive. PNG, JPEG, and WEBP pictures, WOFF fonts, and the WASM
   parser are accepted.
-- The cover, the screenshots, and the icon are in the manifest. The sizes that Orca accepts are in
-  the Orca document `docs/reference/plugin-manifest.md`.
+- The cover and the screenshots are in the manifest. The sizes that Orca accepts are in the Orca
+  document `docs/reference/plugin-manifest.md`.
+- The cover is `docs/images/cover.png`. Its source is `assets/cover.html`, which shows the
+  screenshot `docs/images/overview.png`. If the screenshot or the text changes, make the cover
+  again with the command in the header of `assets/cover.html`.
 
 ## Development requests
 
