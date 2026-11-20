@@ -109,6 +109,9 @@ function namespace(name, impl) {
   });
 }
 function extensionPackageJson() {
+  if (!host.extensionPath) {
+    return {};
+  }
   if (!packageJsonCache) {
     try {
       packageJsonCache = JSON.parse(fs.readFileSync(nodePath.join(host.extensionPath, "package.json"), "utf8"));

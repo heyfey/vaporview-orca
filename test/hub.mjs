@@ -12,9 +12,10 @@ const handlers = new Map();
 const posts = [];
 const calls = [];
 const context = { workspaceId: 'ws1', displayName: 'test', branch: 'main' };
+const logLines = [];
 const orca = {
   api: { major: 1, minor: 9 },
-  log: (m) => { if (!/\[adapter\]|theme/.test(m)) console.log('   log:', String(m).slice(0, 160)); },
+  log: (m) => { logLines.push(String(m)); if (!/\[adapter\]|theme/.test(m)) console.log('   log:', String(m).slice(0, 160)); },
   panels: { handle: (name, fn) => handlers.set(name, fn), post: (event, payload) => posts.push({ event, payload }) },
   events: { on: () => ({ dispose() {} }) },
   host: {
@@ -171,5 +172,8 @@ check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart 
   check(tree.items.length > 0, 'the tree shows the waveform of the tab with the focus');
   check(tree.items[0].open === true, 'a node that was open is open again after a change to a different waveform and back');
 }
+// A setting that is not in the Orca manifest gets its default from vaporview. The check uses
+// fstMaxStaticLoadSize: with no default, vaporview reads each FST file from the disk on demand.
+check(!logLines.some((m) => m.includes('max static load size')), 'a small FST file loads into memory (a vaporview setting default applies)');
 fs.rmSync(workspacePath, { recursive: true, force: true });
 process.exit(process.exitCode ?? 0);

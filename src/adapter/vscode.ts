@@ -453,6 +453,8 @@ export class WebviewPanel {
 
 let packageJsonCache: any;
 function extensionPackageJson(): any {
+  // A library of vaporview asks for the extension before the host gives the folder. No copy then.
+  if (!host.extensionPath) { return {}; }
   if (!packageJsonCache) {
     try {
       packageJsonCache = JSON.parse(fs.readFileSync(nodePath.join(host.extensionPath, 'package.json'), 'utf8'));
