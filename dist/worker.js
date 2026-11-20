@@ -11455,56 +11455,62 @@ var filehandler;
 })(filehandler || (filehandler = {}));
 
 // vaporview/src/extension_core/wasm_handler.ts
-var nodeFsWrapper = {
-  type: "nodeFs",
-  loadStatic: false,
-  fd: 0,
-  fileSize: 0,
-  bufferSize: 60 * 1024,
-  loadFile: async (uri, fileType) => {
-    const open2 = promisify(fs2.open);
-    const stats = fs2.statSync(uri.fsPath);
-    nodeFsWrapper.fd = await open2(uri.fsPath, "r");
-    nodeFsWrapper.fileSize = stats.size;
-    const fstMaxStaticLoadSize = workspace.getConfiguration("vaporview").get("fstMaxStaticLoadSize");
-    const maxStaticSize = Number(fstMaxStaticLoadSize) * 1048576;
-    nodeFsWrapper.loadStatic = stats.size < maxStaticSize;
-    if (fileType === "fst" && nodeFsWrapper.loadStatic === false) {
-      nodeFsWrapper.bufferSize = 8192;
-    }
-  },
-  readSlice: fs2.readSync,
-  close: promisify(fs2.close)
+var createNodeFsWrapper = () => {
+  const wrapper = {
+    type: "nodeFs",
+    loadStatic: false,
+    fd: 0,
+    fileSize: 0,
+    bufferSize: 60 * 1024,
+    loadFile: async (uri, fileType) => {
+      const open2 = promisify(fs2.open);
+      const stats = fs2.statSync(uri.fsPath);
+      wrapper.fd = await open2(uri.fsPath, "r");
+      wrapper.fileSize = stats.size;
+      const fstMaxStaticLoadSize = workspace.getConfiguration("vaporview").get("fstMaxStaticLoadSize");
+      const maxStaticSize = Number(fstMaxStaticLoadSize) * 1048576;
+      wrapper.loadStatic = stats.size < maxStaticSize;
+      if (fileType === "fst" && wrapper.loadStatic === false) {
+        wrapper.bufferSize = 8192;
+      }
+    },
+    readSlice: fs2.readSync,
+    close: promisify(fs2.close)
+  };
+  return wrapper;
 };
-var workspaceFsWrapper = {
-  type: "workspace",
-  loadStatic: true,
-  fd: 0,
-  fileSize: 0,
-  bufferSize: 60 * 1024,
-  loadFile: async (uri, fileType) => {
-    const stats = await workspace.fs.stat(uri);
-    workspaceFsWrapper.fileData = await workspace.fs.readFile(uri);
-    workspaceFsWrapper.fileSize = stats.size;
-  },
-  readSlice: (fd, buffer, offset, length, position) => {
-    buffer.set(workspaceFsWrapper.fileData.subarray(position, position + length), offset);
-    return length;
-  },
-  close: (fd) => {
-  }
+var createWorkspaceFsWrapper = () => {
+  const wrapper = {
+    type: "workspace",
+    loadStatic: true,
+    fd: 0,
+    fileSize: 0,
+    bufferSize: 60 * 1024,
+    loadFile: async (uri, fileType) => {
+      const stats = await workspace.fs.stat(uri);
+      wrapper.fileData = await workspace.fs.readFile(uri);
+      wrapper.fileSize = stats.size;
+    },
+    readSlice: (fd, buffer, offset, length, position) => {
+      buffer.set(wrapper.fileData.subarray(position, position + length), offset);
+      return length;
+    },
+    close: (fd) => {
+    }
+  };
+  return wrapper;
 };
 var getFsWrapper = async (uri) => {
   if (uri.scheme === "file") {
     try {
       const fileStats = await fs2.promises.stat(uri.fsPath);
       if (fileStats.isFile()) {
-        return nodeFsWrapper;
+        return createNodeFsWrapper();
       }
     } catch {
     }
   }
-  return workspaceFsWrapper;
+  return createWorkspaceFsWrapper();
 };
 var WasmFormatHandler = class _WasmFormatHandler {
   providerDelegate;
@@ -11747,7 +11753,13 @@ var WasmFormatHandler = class _WasmFormatHandler {
     }
   }
   async unload() {
-    this.fileReader.close(this.fileReader.fd);
+    const fd = this.fileReader.fd;
+    if (fd !== 0) {
+      this.fileReader.fd = 0;
+      Promise.resolve(this.fileReader.close(fd)).catch((error) => {
+        this.providerDelegate.logOutputChannel("Failed to close " + this.uri.fsPath + ": " + error);
+      });
+    }
     if (this.wasmApi) {
       await this.wasmApi.unload();
     }

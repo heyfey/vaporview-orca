@@ -13,7 +13,8 @@
     "sync": "bash scripts/sync-windows.sh",
     "release": "node scripts/release.mjs",
     "test:hub": "node test/hub.mjs && node test/hub.mjs test/data/tpu.fst",
-    "test": "npm run build && npm run test:when && npm run test:headless && npm run test:hub",
+    "test:two-close": "node test/two-close.mjs",
+    "test": "npm run build && npm run test:when && npm run test:headless && npm run test:hub && npm run test:two-close",
     "build:check": "npm run build && git diff --exit-code --stat -- dist orca-plugin.json",
     "test:when": "node test/when.mjs"
   },

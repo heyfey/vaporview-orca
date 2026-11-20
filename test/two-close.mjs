@@ -1,9 +1,8 @@
-// Evidence for the vaporview defect "all documents share one file reader" (D10 in
-// docs/feature-parity.md): opens two waveforms, closes both, and counts the open file handles.
-// Not a part of `npm test`, because it fails with upstream vaporview 1.6.1:
-//   node test/two-close.mjs                               the process stops with EBADF
-//   node --unhandled-rejections=warn test/two-close.mjs   shows the handle that stays open
-// With the fix the counts are 2, 1, 0 and no error shows. Linux only (/proc/self/fd).
+// Two waveforms open, then both close: each document must close its own file one time.
+// It is the test for vaporview issue 234 (all documents shared one file reader, so the second
+// close failed with EBADF and one file stayed open). Vaporview does not wait for the close, so
+// the test waits until the count of open files is the expected one. The count comes from
+// /proc/self/fd. Where that folder does not exist, the test only makes sure that no error shows.
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -48,19 +47,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const { default: activate } = await import(path.join(here, '..', 'dist', 'worker.js'));
 await activate(orca);
 
-const openVcd = () => fs.readdirSync('/proc/self/fd').filter((n) => { try { return fs.readlinkSync('/proc/self/fd/' + n).endsWith('.vcd'); } catch { return false; } }).length;
+process.on('unhandledRejection', (error) => check(false, `no promise fails without a handler (${error})`));
+const canCount = fs.existsSync('/proc/self/fd');
+const extension = path.extname(waveform);
+const openFiles = () => fs.readdirSync('/proc/self/fd').filter((n) => { try { return fs.readlinkSync('/proc/self/fd/' + n).endsWith(extension); } catch { return false; } }).length;
+// Waits until the count is the expected one. Gives the last count after 5 seconds.
+const openFilesBecome = async (expected) => {
+  if (!canCount) { await sleep(500); return expected; }
+  for (let i = 0; i < 100 && openFiles() !== expected; i++) { await sleep(50); }
+  return openFiles();
+};
 await req('panel.state', { workspace: context });
-const second = path.join(workspacePath, 'second.vcd');
+const second = path.join(workspacePath, 'second' + extension);
 fs.copyFileSync(waveform, second);
 const a = await req('panel.open', { path: waveform });
 const b = await req('panel.open', { path: second });
-console.log('RESULT: open file handles with two waveforms open:', openVcd());
+let count = await openFilesBecome(2);
+check(count === 2, `two open waveforms have two open files (${count})`);
 await req('panel.close', { docKey: a.docKey });
-await sleep(300);
-console.log('RESULT: open file handles after the first close:', openVcd());
+count = await openFilesBecome(1);
+check(count === 1, `the first close closes one file (${count})`);
 await req('panel.close', { docKey: b.docKey });
-await sleep(500);
-console.log('RESULT: open file handles after the second close:', openVcd());
-console.log('RESULT: two waveforms closed, the process is alive');
+count = await openFilesBecome(0);
+check(count === 0, `the second close closes the other file (${count})`);
+check((await req('panel.state', { workspace: context })).waveforms.length === 0, 'the two waveforms are closed and the worker is alive');
+if (!canCount) { console.log('note: no /proc/self/fd, the open files were not counted'); }
 fs.rmSync(workspacePath, { recursive: true, force: true });
-process.exit(0);
+process.exit(process.exitCode ?? 0);

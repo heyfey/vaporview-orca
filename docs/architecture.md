@@ -3,7 +3,7 @@
 This document records what vaporview does in VS Code, what the Orca plugin does, the Orca limit
 behind each difference, and the change to propose to Orca for that limit.
 
-- vaporview source: submodule `vaporview/`, upstream commit `7b63f84` (v1.6.1).
+- vaporview source: submodule `vaporview/`, upstream commit `5dff157` (v1.6.1 plus the fix of vaporview issue 234).
 - Orca source read: `stablyai/orca` commit `cbd50af5be` (host API 1.9).
 - Orca tested: installed desktop app 1.4.255 on Windows (host API 1.4). See [orca-test-results.md](orca-test-results.md).
 - PR candidates (PR-1 to PR-12): see [orca-pr-candidates.md](orca-pr-candidates.md).
@@ -93,8 +93,8 @@ Rules of the adapter:
   file to change when Orca gets a byte transport (PR-6).
 
 Result: a new vaporview version needs only a submodule update, unless it uses a VS Code API that
-the adapter does not have yet. No change to vaporview was necessary for the prototype. One upstream fix is prepared (a file
-reader for each document, see `drafts/vaporview-issue-drafts.md`).
+the adapter does not have yet. One change to vaporview was necessary: a file reader for each
+document. It went upstream first (vaporview PR 235), and the plugin got it with a submodule update.
 
 Message transport today (`FrameLink`): the frame pulls. It keeps one `editor.poll` request open,
 and the worker answers with a batch of messages. The frame sends its own messages in batches, one

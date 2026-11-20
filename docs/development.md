@@ -22,16 +22,14 @@ npm test                     # builds, then runs the vaporview core and the buil
 
 If you cloned without `--recurse-submodules`, run `git submodule update --init`.
 
-`npm test` needs no Orca. It builds first, then it has three parts:
+`npm test` needs no Orca. It builds first, then it has four parts:
 
 | Script | What it runs |
 |---|---|
 | `test:when` | The evaluator for VS Code `when` clauses |
 | `test:headless` | The vaporview extension code on the adapter, with a VCD file and an FST file |
 | `test:hub` | The built worker with a stand-in for the Orca API, with a VCD file and an FST file |
-
-`test/two-close.mjs` is not a part of `npm test`. It shows a vaporview defect (D10 in
-[feature-parity.md](feature-parity.md)) and fails until vaporview has the fix.
+| `test:two-close` | The built worker opens two waveforms and closes both. Each must close its own file (vaporview issue 234). |
 
 ## Load the plugin in Orca
 
@@ -112,7 +110,7 @@ output, which is larger than the Orca limits. Load `build/plugin`.
 `vaporview/` is a git submodule of upstream vaporview. Git records the exact commit of the
 submodule in the tree of this repository (`git ls-tree HEAD vaporview`), so each commit of this
 repository builds with one known vaporview commit. `.gitmodules` holds only the URL.
-Now: `7b63f84` (version 1.6.1 plus one commit).
+Now: `5dff157` (9 commits after the tag `1.6.1-release`, with the fix of vaporview issue 234).
 
 To move to a newer vaporview:
 
@@ -233,7 +231,6 @@ The limits that a person meets most. [feature-parity.md](feature-parity.md) has 
 | The tab stays open after a waveform closes in the panel | A plugin cannot close a tab (PR-4) |
 | Commands that need an input box or a file dialog are hidden | Orca has no input prompt or file dialog for a plugin (PR-2, PR-7) |
 | `Ctrl+0` (zoom to fit) goes to Orca | Orca handles its shortcuts before the page (PR-10) |
-| The worker restarts when two waveforms close in one run | A vaporview defect (D10 in `feature-parity.md`) |
 | Large waveforms are slow | The data path from the worker to a page is JSON text with a message limit (PR-6) |
 
 ## Files of other projects

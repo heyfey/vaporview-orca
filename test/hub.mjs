@@ -152,8 +152,7 @@ check(!!again.docKey && again.keybindings.length === 17, 'the person can open it
 check((await req('editor.poll', { docKey: 'unknown', instance: 'f9' })).restart === true, 'a frame of an unknown document is told to start again');
 {
   // Two waveforms show at the same time (a split view). The tab that gets the focus sets the tree.
-  // This block is the last one and closes no waveform: the close of two waveforms in one run
-  // stops the worker, because of a vaporview defect (see D10 in docs/feature-parity.md).
+  // The close of two waveforms in one run has its own test, test/two-close.mjs.
   const before = await req('tree.children', {});
   check(before.items[0].open === false, 'a node of the tree starts closed');
   await req('tree.action', { id: before.items[0].id, action: 'expand' });
